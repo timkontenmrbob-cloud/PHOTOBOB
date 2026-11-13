@@ -5,13 +5,11 @@ import {
   PrintJobParams,
   PrintResult,
 } from '../../types';
-import { PHOTOBOX_CERTIFICATE_PEM, signQZTrayRequest } from './qzSecurity';
 
 export class QZTrayPrinter implements PrinterAdapter {
   readonly id = 'windows-qz' as const;
   readonly name = 'Windows — Automatic Printing (QZ Tray)';
 
-  private securityInitialized = false;
   private connectPromise: Promise<boolean> | null = null;
 
   constructor() {
@@ -24,41 +22,6 @@ export class QZTrayPrinter implements PrinterAdapter {
       });
     } catch (e) {
       console.warn('[QZ Tray] Inisialisasi callback gagal:', e);
-    }
-  }
-
-  /**
-   * Configure certificate and signature handlers for silent, prompt-free printing.
-   * By providing the X.509 certificate and browser-side RSA-SHA512 signature,
-   * QZ Tray enables the "Remember this decision" option and keeps "Allow" active.
-   */
-  private configureSecurity(_settings: AdminSettings): void {
-    if (this.securityInitialized) return;
-
-    try {
-      // 1. Digital Certificate Promise (X.509 Certificate for "PHOTOBOX KIOSK")
-      qz.security.setCertificatePromise((resolve: (cert?: string) => void) => {
-        resolve(PHOTOBOX_CERTIFICATE_PEM);
-      });
-
-      // 2. Request Signing Promise (RSA-SHA512 via browser WebCrypto)
-      qz.security.setSignatureAlgorithm('SHA512');
-      qz.security.setSignaturePromise((toSign: string) => {
-        return async (resolve: (sig?: string) => void) => {
-          try {
-            const signature = await signQZTrayRequest(toSign);
-            resolve(signature);
-          } catch (signErr) {
-            console.error('[QZ Tray] Gagal membuat digital signature di browser:', signErr);
-            resolve(undefined);
-          }
-        };
-      });
-
-      this.securityInitialized = true;
-      console.log('[QZ Tray] Digital certificate & WebCrypto signer berhasil diaktifkan.');
-    } catch (err) {
-      console.warn('[QZ Tray] Error saat mengkonfigurasi security handler:', err);
     }
   }
 
@@ -77,8 +40,6 @@ export class QZTrayPrinter implements PrinterAdapter {
     if (this.connectPromise) {
       return this.connectPromise;
     }
-
-    this.configureSecurity(settings);
 
     const isHttps = typeof window !== 'undefined' && window.location.protocol === 'https:';
     const useSecure = settings.qzUseSecure !== undefined ? settings.qzUseSecure : isHttps;
@@ -278,6 +239,7 @@ export class QZTrayPrinter implements PrinterAdapter {
       console.log(`[QZTrayPrinter] Mengirim pekerjaan via Direct ESC/POS ke "${resolvedPrinter}"...`);
       config = qz.configs.create(resolvedPrinter, {
         encoding: 'UTF-8',
+        rasterize: false,
       });
 
       printData = [
@@ -291,7 +253,7 @@ export class QZTrayPrinter implements PrinterAdapter {
           options: {
             language: 'escpos',
             imageEncoding: 'gs_v_0', // Native 203 DPI raster bit image: perfect 1:1 pixel fidelity
-            quantization: 'dither', // FIX: Luminance-based dithering prevents the default 'alpha' from turning the whole image solid black
+            quantization: 'black', // Black-pixel luminance quantization: maps pure 1-bit dithered image directly without solid black alpha bug
             threshold: 128,
           },
         },
@@ -349,11 +311,14 @@ export class QZTrayPrinter implements PrinterAdapter {
         fix = 'Izin cetak belum disetujui pada dialog QZ Tray. Pilih "Allow" dan centang "Remember this decision".';
       }
 
+      // Truncate errorMsg if excessively long (e.g. base64 signature, stack trace)
+      const cleanInfo = errorMsg.length > 90 ? `${errorMsg.substring(0, 87)}...` : errorMsg;
+
       // Enforce strict required error message per Section 2:
       return {
         success: false,
         errorMessage: 'Printer tidak terhubung. Silakan panggil petugas.',
-        errorFix: `${fix} (Info: ${errorMsg})`,
+        errorFix: `${fix} (Info: ${cleanInfo})`,
       };
     }
   }

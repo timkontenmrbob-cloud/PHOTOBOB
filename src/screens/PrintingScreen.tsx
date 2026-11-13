@@ -163,15 +163,15 @@ export const PrintingScreen: React.FC = () => {
             </p>
 
             {/* Error Message Box */}
-            <div className="w-full bg-gray-50 border border-brand-border rounded-2xl p-4 text-left mb-6">
+            <div className="w-full max-w-full overflow-hidden bg-gray-50 border border-brand-border rounded-2xl p-4 text-left mb-6">
               <p className="text-sm font-semibold text-brand-dark mb-1">
                 Keterangan Kendala:
               </p>
-              <p className="text-sm text-brand-muted">
+              <p className="text-sm text-brand-muted break-words break-all">
                 {session.printErrorMessage || 'Printer tidak merespons.'}
               </p>
               {session.printErrorFix && (
-                <div className="mt-2 pt-2 border-t border-gray-200 text-xs text-brand-blue font-medium">
+                <div className="mt-2 pt-2 border-t border-gray-200 text-xs text-brand-blue font-medium break-words break-all">
                   Saran: {session.printErrorFix}
                 </div>
               )}

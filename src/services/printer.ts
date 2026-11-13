@@ -175,10 +175,11 @@ class PrinterService {
       this.lastDiagnostics.detail = errMsg;
 
       // In QZ Tray mode, return mandated exact error message:
+      const cleanErr = errMsg.length > 90 ? `${errMsg.substring(0, 87)}...` : errMsg;
       return {
         success: false,
         errorMessage: 'Printer tidak terhubung. Silakan panggil petugas.',
-        errorFix: `Detail: ${errMsg}`,
+        errorFix: `Detail: ${cleanErr}`,
       };
     } finally {
       this.isPrintingLocked = false;

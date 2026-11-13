@@ -16,6 +16,7 @@ import {
   ShieldCheck,
   Laptop,
   Smartphone,
+  Command,
 } from 'lucide-react';
 import { usePhotobox } from '../context/PhotoboxContext';
 import { AdminSettings, CleanterHealthResponse } from '../types';
@@ -39,7 +40,7 @@ export const AdminSettingsScreen: React.FC<{ onClose: () => void }> = ({ onClose
   const [isCheckingPrinter, setIsCheckingPrinter] = useState(false);
   const [printerHealth, setPrinterHealth] = useState<CleanterHealthResponse | null>(null);
   const [printerError, setPrinterError] = useState<string | null>(null);
-  const [desktopPrinterStatus, setDesktopPrinterStatus] = useState<string | null>(null);
+  const [windowsPrinterStatus, setWindowsPrinterStatus] = useState<string | null>(null);
 
   const [isTestPrinting, setIsTestPrinting] = useState(false);
   const [testPrintMessage, setTestPrintMessage] = useState<string | null>(null);
@@ -52,14 +53,14 @@ export const AdminSettingsScreen: React.FC<{ onClose: () => void }> = ({ onClose
   const checkPrinterHealth = async () => {
     setIsCheckingPrinter(true);
     setPrinterError(null);
-    setDesktopPrinterStatus(null);
+    setWindowsPrinterStatus(null);
 
     const res = await printerService.checkHealth(formData);
     setIsCheckingPrinter(false);
 
-    if (formData.printerMode === 'desktop-usb') {
+    if (formData.printerMode === 'windows-usb') {
       if (res.ready) {
-        setDesktopPrinterStatus(res.info || 'Browser Print siap digunakan untuk printer USB.');
+        setWindowsPrinterStatus(res.info || 'Windows Browser Print siap untuk printer iWare IW D260UL.');
       } else {
         setPrinterError(res.error || 'Pencetakan browser tidak didukung.');
       }
@@ -89,7 +90,7 @@ export const AdminSettingsScreen: React.FC<{ onClose: () => void }> = ({ onClose
         });
         stream.getTracks().forEach((t) => t.stop());
         setCameraStatus(
-          formData.printerMode === 'desktop-usb'
+          formData.printerMode === 'windows-usb'
             ? 'Webcam laptop aktif dan siap digunakan'
             : 'Kamera depan ponsel aktif dan siap digunakan'
         );
@@ -134,12 +135,12 @@ export const AdminSettingsScreen: React.FC<{ onClose: () => void }> = ({ onClose
     }
   };
 
-  // Run Test Print (works for both Desktop USB and Android Cleanter)
+  // Run Test Print (works for both Windows USB and Android Cleanter)
   const handleTestPrint = async () => {
     setIsTestPrinting(true);
     setTestPrintMessage(null);
 
-    // Create a 576-dot test canvas pattern
+    // Create a 576-dot test canvas pattern (72mm at 203 DPI)
     const canvas = document.createElement('canvas');
     canvas.width = formData.rasterDotWidth || 576;
     canvas.height = 380;
@@ -151,18 +152,18 @@ export const AdminSettingsScreen: React.FC<{ onClose: () => void }> = ({ onClose
       ctx.fillStyle = '#141E30';
       ctx.textAlign = 'center';
       ctx.font = 'bold 26px sans-serif';
-      ctx.fillText('=== TEST PRINT PHOTOBOX ===', canvas.width / 2, 45);
+      ctx.fillText('=== TEST PRINT KALIBRASI ===', canvas.width / 2, 45);
 
       ctx.font = 'normal 17px sans-serif';
       const targetPrinterName =
-        formData.printerMode === 'desktop-usb'
-          ? 'Desktop USB (iWare / 80mm)'
-          : 'Android Bluetooth (VSC TM-80D)';
-      ctx.fillText(`Mode: ${targetPrinterName}`, canvas.width / 2, 85);
-      ctx.fillText(`Lebar Raster: ${canvas.width} dots`, canvas.width / 2, 118);
+        formData.printerMode === 'windows-usb'
+          ? 'iWare IW D260UL (Windows USB)'
+          : 'VSC TM-80D (Android Bluetooth)';
+      ctx.fillText(`Target: ${targetPrinterName}`, canvas.width / 2, 85);
+      ctx.fillText(`Lebar Titik: ${canvas.width} dots (72 mm)`, canvas.width / 2, 118);
       ctx.fillText(`Tanggal: ${new Date().toLocaleString('id-ID')}`, canvas.width / 2, 150);
 
-      // Calibration test bar
+      // Calibration ruler test bar
       ctx.fillRect(20, 180, canvas.width - 40, 8);
       ctx.font = 'bold 15px sans-serif';
       ctx.fillText('|<- 0 mm                       576 dots / 72 mm ->|', canvas.width / 2, 215);
@@ -178,7 +179,7 @@ export const AdminSettingsScreen: React.FC<{ onClose: () => void }> = ({ onClose
       }
 
       ctx.font = 'bold 16px sans-serif';
-      ctx.fillText('STATUS: KALIBRASI OK & SIAP', canvas.width / 2, 330);
+      ctx.fillText('STATUS: iWare IW D260UL OK', canvas.width / 2, 330);
     }
 
     const testDataUrl = canvas.toDataURL('image/png');
@@ -193,8 +194,8 @@ export const AdminSettingsScreen: React.FC<{ onClose: () => void }> = ({ onClose
 
     setIsTestPrinting(false);
     if (res.success) {
-      if (formData.printerMode === 'desktop-usb') {
-        setTestPrintMessage('✅ Dialog cetak sistem browser berhasil dibuka untuk printer USB!');
+      if (formData.printerMode === 'windows-usb') {
+        setTestPrintMessage('✅ Dialog cetak Windows browser berhasil dibuka untuk printer iWare!');
       } else {
         setTestPrintMessage('✅ Test print berhasil terkirim ke printer via Cleanter!');
       }
@@ -230,7 +231,12 @@ export const AdminSettingsScreen: React.FC<{ onClose: () => void }> = ({ onClose
             <span>Pengaturan Kiosk Admin</span>
           </h1>
           <p className="text-xs text-brand-muted">
-            Mode Aktif: {formData.printerMode === 'desktop-usb' ? 'Desktop USB (iWare)' : 'Android Bluetooth (VSC TM-80D)'}
+            Mode Aktif:{' '}
+            <span className="font-semibold text-brand-dark">
+              {formData.printerMode === 'windows-usb'
+                ? 'Windows USB — Testing (iWare IW D260UL)'
+                : 'Android Bluetooth — Event (VSC TM-80D)'}
+            </span>
           </p>
         </div>
         <button
@@ -300,28 +306,28 @@ export const AdminSettingsScreen: React.FC<{ onClose: () => void }> = ({ onClose
 
       {/* Main Content Area */}
       <main className="flex-1 p-6 max-w-2xl mx-auto w-full space-y-6">
-        {/* PRINTING MODE SELECTOR CARD (Displayed prominently) */}
+        {/* PRINTING MODE SELECTOR CARD (Prominently displayed) */}
         <div className="bg-brand-blue-light/50 border-2 border-brand-blue/30 rounded-2xl p-5 space-y-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Sliders className="w-5 h-5 text-brand-blue" />
-              <h3 className="font-extrabold text-brand-dark text-base">Pilih Mode Operasional Printer</h3>
+              <h3 className="font-extrabold text-brand-dark text-base">Pilih Mode Printer & Perangkat</h3>
             </div>
             <span className="text-xs px-2.5 py-1 rounded-full font-bold bg-white text-brand-blue border border-blue-200">
-              {formData.printerMode === 'desktop-usb' ? 'Desktop USB Aktif' : 'Android Bluetooth Aktif'}
+              {formData.printerMode === 'windows-usb' ? 'Windows USB Aktif' : 'Android Bluetooth Aktif'}
             </span>
           </div>
           <p className="text-xs text-brand-muted">
-            Hanya satu mode yang aktif dalam satu waktu. Pilih sesuai perangkat yang sedang Anda gunakan.
+            Hanya satu mode yang aktif dalam satu waktu. Pilih sesuai target perangkat dan printer yang Anda gunakan:
           </p>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-            {/* Mode 1: Desktop USB */}
+            {/* Mode 1: Windows USB — Testing */}
             <button
               type="button"
-              onClick={() => setFormData({ ...formData, printerMode: 'desktop-usb' })}
+              onClick={() => setFormData({ ...formData, printerMode: 'windows-usb' })}
               className={`p-4 rounded-xl text-left border-2 transition-all flex flex-col justify-between ${
-                formData.printerMode === 'desktop-usb'
+                formData.printerMode === 'windows-usb'
                   ? 'border-brand-blue bg-white shadow-sm ring-2 ring-brand-blue/20'
                   : 'border-brand-border bg-white/70 hover:bg-white'
               }`}
@@ -329,21 +335,22 @@ export const AdminSettingsScreen: React.FC<{ onClose: () => void }> = ({ onClose
               <div className="flex items-center justify-between mb-2">
                 <span className="font-bold text-sm text-brand-dark flex items-center gap-1.5">
                   <Laptop className="w-4 h-4 text-brand-blue" />
-                  <span>Mode 1: Desktop USB (Testing)</span>
+                  <span>Windows USB — Testing</span>
                 </span>
-                {formData.printerMode === 'desktop-usb' && (
+                {formData.printerMode === 'windows-usb' && (
                   <span className="w-2.5 h-2.5 rounded-full bg-brand-blue" />
                 )}
               </div>
               <p className="text-xs text-brand-muted leading-relaxed">
-                • Laptop Windows / macOS<br />
-                • Printer thermal iWare via USB (80mm)<br />
+                • Laptop Windows 10/11<br />
+                • Printer <b>iWare IW D260UL</b> (USB)<br />
                 • Kamera: Webcam laptop<br />
-                • Cetak lewat dialog sistem browser
+                • Native browser printing via driver Windows<br />
+                • Tanpa butuh Cleanter / Bluetooth
               </p>
             </button>
 
-            {/* Mode 2: Android Bluetooth */}
+            {/* Mode 2: Android Bluetooth — Event */}
             <button
               type="button"
               onClick={() => setFormData({ ...formData, printerMode: 'android-bluetooth' })}
@@ -356,7 +363,7 @@ export const AdminSettingsScreen: React.FC<{ onClose: () => void }> = ({ onClose
               <div className="flex items-center justify-between mb-2">
                 <span className="font-bold text-sm text-brand-dark flex items-center gap-1.5">
                   <Smartphone className="w-4 h-4 text-brand-blue" />
-                  <span>Mode 2: Android Bluetooth (Event)</span>
+                  <span>Android Bluetooth — Event</span>
                 </span>
                 {formData.printerMode === 'android-bluetooth' && (
                   <span className="w-2.5 h-2.5 rounded-full bg-brand-blue" />
@@ -364,7 +371,7 @@ export const AdminSettingsScreen: React.FC<{ onClose: () => void }> = ({ onClose
               </div>
               <p className="text-xs text-brand-muted leading-relaxed">
                 • Ponsel Samsung Galaxy A35<br />
-                • Printer VSC TM-80D via Bluetooth<br />
+                • Printer <b>VSC TM-80D</b> (Bluetooth)<br />
                 • Kamera depan ponsel (1:1)<br />
                 • Bridge Cleanter (localhost:9100)
               </p>
@@ -375,32 +382,39 @@ export const AdminSettingsScreen: React.FC<{ onClose: () => void }> = ({ onClose
         {/* TAB 1: STATUS & KONEKSI */}
         {activeTab === 'status' && (
           <div className="space-y-6">
-            {formData.printerMode === 'desktop-usb' ? (
-              // DESKTOP USB STATUS CARD
+            {formData.printerMode === 'windows-usb' ? (
+              // WINDOWS USB / iWare STATUS CARD
               <div className="bg-white border-2 border-brand-border rounded-2xl p-5 shadow-sm space-y-4">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-brand-blue-light text-brand-blue flex items-center justify-center">
                     <Laptop className="w-5 h-5" />
                   </div>
                   <div>
-                    <h3 className="font-bold text-lg text-brand-dark">Koneksi Printer Desktop USB</h3>
-                    <p className="text-xs text-brand-muted">Target Printer: iWare Thermal Receipt Printer (USB)</p>
+                    <h3 className="font-bold text-lg text-brand-dark">Printer Windows USB: iWare IW D260UL</h3>
+                    <p className="text-xs text-brand-muted">Thermal Receipt 80mm • ESC/POS Native Driver</p>
                   </div>
                 </div>
 
                 <div className="p-4 rounded-xl bg-gray-50 border border-brand-border text-sm space-y-2">
                   <div className="flex items-center gap-2 text-green-700 font-bold">
                     <CheckCircle2 className="w-5 h-5 text-green-600" />
-                    <span>{desktopPrinterStatus || 'Browser Print API Siap Digunakan'}</span>
+                    <span>{windowsPrinterStatus || 'Windows Browser Print Siap'}</span>
                   </div>
                   <p className="text-xs text-brand-muted">
-                    Mencetak langsung melalui dialog sistem browser tanpa membutuhkan bridge atau server eksternal.
+                    Mencetak langsung melalui driver Windows tanpa memerlukan bridge lokal Cleanter atau koneksi Bluetooth.
                   </p>
-                  <div className="p-3 bg-white rounded-lg border border-gray-200 text-xs text-brand-dark space-y-1 mt-2">
-                    <p className="font-semibold text-brand-blue">Petunjuk Penggunaan Printer USB iWare:</p>
-                    <p>1. Hubungkan kabel USB printer iWare ke laptop Anda.</p>
-                    <p>2. Pastikan driver iWare (80mm Thermal) terpasang di Windows atau macOS.</p>
-                    <p>3. Saat dialog cetak browser muncul, pilih printer iWare, atur ukuran kertas ke <b>80mm</b>, Margin ke <b>None / Minimum</b>, dan hilangkan centang <i>Headers & Footers</i>.</p>
+
+                  <div className="p-3 bg-white rounded-lg border border-gray-200 text-xs text-brand-dark space-y-2 mt-2">
+                    <p className="font-semibold text-brand-blue flex items-center gap-1.5">
+                      <Command className="w-4 h-4" />
+                      <span>Petunjuk Setup Windows & iWare IW D260UL:</span>
+                    </p>
+                    <p>1. Tancapkan kabel USB printer iWare ke laptop Windows Anda dan nyalakan printer.</p>
+                    <p>2. Pastikan driver iWare IW D260UL terpasang di <i>Settings ➔ Printers & Scanners</i> dan jadikan sebagai default printer.</p>
+                    <p>3. Di dialog cetak Chrome, pilih ukuran kertas <b>80mm Roll</b>, Margins: <b>None</b>, dan hilangkan centang <b>Headers & footers</b>.</p>
+                    <div className="p-2 bg-blue-50/70 rounded border border-blue-200 text-[11px] text-brand-blue font-medium">
+                      💡 <b>Dukungan Kiosk Otomatis:</b> Jalankan Chrome dengan parameter <code>--kiosk-printing</code> untuk mencetak langsung tanpa dialog browser.
+                    </div>
                   </div>
                 </div>
 
@@ -410,7 +424,7 @@ export const AdminSettingsScreen: React.FC<{ onClose: () => void }> = ({ onClose
                     className="px-5 py-3 bg-brand-blue text-white rounded-xl font-bold text-sm flex items-center gap-2 shadow-sm hover:bg-brand-blue-hover"
                   >
                     <Wifi className="w-4 h-4" />
-                    <span>Uji Ulang Kesiapan Cetak</span>
+                    <span>Uji Status Printer Windows</span>
                   </button>
                 </div>
               </div>
@@ -487,7 +501,7 @@ export const AdminSettingsScreen: React.FC<{ onClose: () => void }> = ({ onClose
                     <Camera className="w-5 h-5 text-brand-blue" />
                     <div>
                       <p className="font-bold text-brand-dark">
-                        {formData.printerMode === 'desktop-usb' ? 'Webcam Laptop' : 'Kamera Depan Ponsel'}
+                        {formData.printerMode === 'windows-usb' ? 'Webcam Laptop Windows' : 'Kamera Depan Ponsel'}
                       </p>
                       <p className="text-xs text-brand-muted">{cameraStatus}</p>
                     </div>
@@ -523,7 +537,7 @@ export const AdminSettingsScreen: React.FC<{ onClose: () => void }> = ({ onClose
             <div className="p-4 rounded-2xl bg-brand-blue-light border border-blue-100 text-sm text-brand-blue">
               <p className="font-bold mb-1">Panduan Penggantian Bingkai Foto:</p>
               <p className="text-xs leading-relaxed text-brand-dark">
-                Unggah gambar berformat <b>PNG dengan background transparan</b>. Ukuran optimal adalah <b>1080 × 1080 piksel (1:1)</b>. Bagian tengah harus bolong/transparan agar wajah pengunjung terlihat. Aset tersimpan permanen di IndexedDB dan dapat digunakan secara offline.
+                Unggah gambar berformat <b>PNG dengan background transparan</b>. Ukuran optimal adalah <b>1080 × 1080 piksel (1:1)</b>. Bagian tengah harus bolong/transparan agar wajah pengunjung terlihat. Aset tersimpan permanen di IndexedDB dan dapat digunakan offline.
               </p>
             </div>
 
@@ -588,7 +602,7 @@ export const AdminSettingsScreen: React.FC<{ onClose: () => void }> = ({ onClose
           </div>
         )}
 
-        {/* TAB 3: PENGATURAN CETAK */}
+        {/* TAB 3: PENGATURAN CETAK & KALIBRASI */}
         {activeTab === 'print' && (
           <div className="space-y-6">
             {/* Test Print Section */}
@@ -596,11 +610,11 @@ export const AdminSettingsScreen: React.FC<{ onClose: () => void }> = ({ onClose
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="font-bold text-base text-brand-dark">
-                    Uji Cetak Thermal Langsung ({formData.printerMode === 'desktop-usb' ? 'Desktop USB' : 'Android Bluetooth'})
+                    Uji Cetak Kalibrasi ({formData.printerMode === 'windows-usb' ? 'iWare IW D260UL' : 'VSC TM-80D'})
                   </h3>
                   <p className="text-xs text-brand-muted">
-                    {formData.printerMode === 'desktop-usb'
-                      ? 'Membuka dialog cetak browser dengan struk uji kalibrasi'
+                    {formData.printerMode === 'windows-usb'
+                      ? 'Membuka dialog cetak Windows dengan struk kalibrasi 80mm'
                       : 'Kirimkan sampel pola kalibrasi langsung ke VSC TM-80D via Cleanter'}
                   </p>
                 </div>
@@ -618,36 +632,61 @@ export const AdminSettingsScreen: React.FC<{ onClose: () => void }> = ({ onClose
               )}
             </div>
 
-            {/* Print Parameters */}
+            {/* Print Parameters Calibration */}
             <div className="bg-white border border-brand-border rounded-2xl p-5 space-y-4 shadow-sm">
-              <h3 className="font-bold text-base text-brand-dark">Parameter Ukuran Kertas & Raster</h3>
+              <h3 className="font-bold text-base text-brand-dark">Kalibrasi Ukuran Kertas & Cetakan</h3>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-                {formData.printerMode === 'desktop-usb' ? (
+                {formData.printerMode === 'windows-usb' ? (
                   <>
                     <div>
-                      <label className="block font-semibold text-brand-dark mb-1">Lebar Kertas Roll Desktop (mm)</label>
+                      <label className="block font-semibold text-brand-dark mb-1">Lebar Kertas Fisik (mm)</label>
                       <select
-                        value={formData.desktopPaperWidthMm}
-                        onChange={(e) => setFormData({ ...formData, desktopPaperWidthMm: Number(e.target.value) })}
+                        value={formData.windowsPaperWidthMm}
+                        onChange={(e) => setFormData({ ...formData, windowsPaperWidthMm: Number(e.target.value) })}
                         className="w-full h-12 px-3 rounded-xl border border-brand-border font-medium bg-white"
                       >
-                        <option value={80}>80 mm (Standar iWare & Roll Thermal)</option>
+                        <option value={80}>80 mm (Standar iWare IW D260UL)</option>
                         <option value={58}>58 mm (Roll Mini)</option>
-                        <option value={72}>72 mm</option>
                       </select>
                     </div>
 
                     <div>
-                      <label className="block font-semibold text-brand-dark mb-1">Margin Desktop (mm)</label>
+                      <label className="block font-semibold text-brand-dark mb-1">Lebar Cetak Efektif (Printable mm)</label>
+                      <input
+                        type="number"
+                        min="50"
+                        max="80"
+                        value={formData.windowsPrintableWidthMm}
+                        onChange={(e) => setFormData({ ...formData, windowsPrintableWidthMm: Number(e.target.value) })}
+                        className="w-full h-12 px-3 rounded-xl border border-brand-border"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block font-semibold text-brand-dark mb-1">Tinggi Halaman Driver (mm)</label>
+                      <input
+                        type="number"
+                        min="90"
+                        max="300"
+                        value={formData.windowsPageHeightMm}
+                        onChange={(e) => setFormData({ ...formData, windowsPageHeightMm: Number(e.target.value) })}
+                        className="w-full h-12 px-3 rounded-xl border border-brand-border"
+                      />
+                      <p className="text-[11px] text-brand-muted mt-0.5">Awal: 120 mm (Dapat disesuaikan jika driver membatasi panjang)</p>
+                    </div>
+
+                    <div>
+                      <label className="block font-semibold text-brand-dark mb-1">Margin Dokumen Cetak (mm)</label>
                       <input
                         type="number"
                         min="0"
                         max="10"
-                        value={formData.desktopMarginMm}
-                        onChange={(e) => setFormData({ ...formData, desktopMarginMm: Number(e.target.value) })}
+                        value={formData.windowsMarginMm}
+                        onChange={(e) => setFormData({ ...formData, windowsMarginMm: Number(e.target.value) })}
                         className="w-full h-12 px-3 rounded-xl border border-brand-border"
                       />
+                      <p className="text-[11px] text-brand-muted mt-0.5">Rekomendasi: 0 mm agar tidak memicu halaman kedua</p>
                     </div>
                   </>
                 ) : (
@@ -665,17 +704,47 @@ export const AdminSettingsScreen: React.FC<{ onClose: () => void }> = ({ onClose
                 )}
 
                 <div>
-                  <label className="block font-semibold text-brand-dark mb-1">Raster Dot Width (Titik)</label>
+                  <label className="block font-semibold text-brand-dark mb-1">Lebar Raster Titik (Dots / Px)</label>
                   <select
                     value={formData.rasterDotWidth}
                     onChange={(e) => setFormData({ ...formData, rasterDotWidth: Number(e.target.value) })}
                     className="w-full h-12 px-3 rounded-xl border border-brand-border font-medium bg-white"
                   >
-                    <option value={576}>576 dots (Standar Kalibrasi 80mm)</option>
+                    <option value={576}>576 dots (Standar iWare & VSC 72mm)</option>
                     <option value={512}>512 dots</option>
                     <option value={640}>640 dots</option>
                     <option value={384}>384 dots (58mm)</option>
                   </select>
+                </div>
+
+                <div>
+                  <label className="block font-semibold text-brand-dark mb-1">
+                    Tinggi Header Struk: {formData.headerHeight} px
+                  </label>
+                  <input
+                    type="range"
+                    min="60"
+                    max="180"
+                    step="5"
+                    value={formData.headerHeight}
+                    onChange={(e) => setFormData({ ...formData, headerHeight: Number(e.target.value) })}
+                    className="w-full accent-brand-blue"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-semibold text-brand-dark mb-1">
+                    Tinggi Footer Struk: {formData.footerHeight} px
+                  </label>
+                  <input
+                    type="range"
+                    min="60"
+                    max="180"
+                    step="5"
+                    value={formData.footerHeight}
+                    onChange={(e) => setFormData({ ...formData, footerHeight: Number(e.target.value) })}
+                    className="w-full accent-brand-blue"
+                  />
                 </div>
 
                 <div>
@@ -731,7 +800,7 @@ export const AdminSettingsScreen: React.FC<{ onClose: () => void }> = ({ onClose
                       />
                     </div>
                     <div>
-                      <label className="block font-semibold mb-1">Jumlah Garis Feed Kosong</label>
+                      <label className="block font-semibold mb-1">Garis Feed Spacing (Jarak Keluar)</label>
                       <input
                         type="number"
                         min="1"
@@ -871,7 +940,7 @@ export const AdminSettingsScreen: React.FC<{ onClose: () => void }> = ({ onClose
                   />
                   <div>
                     <p className="font-semibold text-xs">Kunci Layar Selalu Menyala (WakeLock API)</p>
-                    <p className="text-[11px] text-brand-muted">Mencegah layar redup atau tidur saat kiosk aktif.</p>
+                    <p className="text-[11px] text-brand-muted">Mencegah layar laptop/ponsel redup saat kiosk aktif.</p>
                   </div>
                 </label>
 

@@ -8,7 +8,7 @@ export type ScreenState =
   | 'success'
   | 'print-error';
 
-export type PrinterMode = 'desktop-usb' | 'android-bluetooth';
+export type PrinterMode = 'windows-usb' | 'android-bluetooth';
 
 export interface FrameItem {
   id: string; // 'frame-1' | 'frame-2' | 'frame-3'
@@ -27,16 +27,18 @@ export interface AdminSettings {
   showSessionCode: boolean;
   adminPin: string;
 
-  // Active Printing Mode: 'desktop-usb' (Laptop / iWare USB) or 'android-bluetooth' (Samsung A35 / VSC TM-80D)
+  // Active Printing Mode: 'windows-usb' (Windows Laptop / iWare USB) or 'android-bluetooth' (Samsung A35 / Cleanter)
   printerMode: PrinterMode;
 
-  // Desktop USB Configuration
-  desktopPaperWidthMm: number; // default 80
-  desktopMarginMm: number; // default 0
+  // Windows USB Configuration (iWare IW D260UL / 80mm ESC/POS)
+  windowsPaperWidthMm: number; // default 80 mm
+  windowsPrintableWidthMm: number; // default 72 mm
+  windowsPageHeightMm: number; // default 120 mm (adjustable)
+  windowsMarginMm: number; // default 0 mm
 
-  // Thermal Print Configuration
+  // Thermal Print Calibration (Raster & Composition)
   paperWidth: number; // 80 or 58 mm
-  rasterDotWidth: number; // 576, 512, 384, 640 or custom
+  rasterDotWidth: number; // 576 (72mm at 203 DPI), 512, 384, 640 or custom
   marginHorizontal: number; // in dots/px
   headerHeight: number; // in dots/px
   footerHeight: number; // in dots/px
@@ -120,7 +122,7 @@ export interface CleanterErrorResponse {
 
 export interface PrintResult {
   success: boolean;
-  needsConfirmation?: boolean; // For desktop-usb where browser print dialog opened and needs confirmation
+  needsConfirmation?: boolean; // For windows-usb where browser print dialog opened and needs confirmation
   jobId?: string;
   errorMessage?: string;
   errorFix?: string;

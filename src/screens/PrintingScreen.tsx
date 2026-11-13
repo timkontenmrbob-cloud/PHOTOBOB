@@ -1,7 +1,16 @@
-import React from 'react';
-import { Printer, AlertTriangle, RefreshCw, ArrowLeft, CheckCircle2 } from 'lucide-react';
+import React, { useState } from 'react';
+import {
+  Printer,
+  AlertTriangle,
+  RefreshCw,
+  ArrowLeft,
+  CheckCircle2,
+  Lock,
+  ShieldAlert,
+} from 'lucide-react';
 import { usePhotobox } from '../context/PhotoboxContext';
 import { Header } from '../components/Header';
+import { AdminPinModal } from '../components/AdminPinModal';
 
 export const PrintingScreen: React.FC = () => {
   const {
@@ -13,42 +22,89 @@ export const PrintingScreen: React.FC = () => {
     setScreen,
   } = usePhotobox();
 
+  const [isStaffAssistanceOpen, setIsStaffAssistanceOpen] = useState(false);
+  const [isAdminPinModalOpen, setIsAdminPinModalOpen] = useState(false);
+  const [isAdminAuthorized, setIsAdminAuthorized] = useState(false);
+
   const isError = session.printStatus === 'error';
   const isConfirming = session.printStatus === 'confirming';
+
+  // Handler when visitor taps "BELUM, PANGGIL PETUGAS"
+  const handleReportUncertainPrint = () => {
+    setIsStaffAssistanceOpen(true);
+  };
+
+  // Handler when admin PIN succeeds
+  const handleAdminAuthSuccess = () => {
+    setIsAdminPinModalOpen(false);
+    setIsAdminAuthorized(true);
+  };
 
   return (
     <div className="min-h-screen flex flex-col bg-white text-brand-dark">
       <Header />
 
       <main className="flex-1 flex flex-col items-center justify-center px-6 max-w-md mx-auto w-full text-center py-8">
-        {/* 1. CONFIRMATION STATE FOR DESKTOP BROWSER PRINTING */}
-        {isConfirming ? (
+        {/* 1. ADMIN ASSISTANCE RECOVERY STATE (When visitor tapped 'BELUM, PANGGIL PETUGAS') */}
+        {isStaffAssistanceOpen ? (
+          <div className="flex flex-col items-center animate-fadeIn">
+            <div className="w-24 h-24 rounded-3xl bg-amber-50 border border-amber-200 flex items-center justify-center mb-6 text-amber-600">
+              <ShieldAlert className="w-12 h-12 stroke-[2]" />
+            </div>
+
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-brand-dark tracking-tight mb-2">
+              Bantuan Petugas
+            </h1>
+            <p className="text-[18px] text-brand-muted max-w-xs mb-6">
+              Fotomu tetap tersimpan aman. Silakan panggil petugas photobox untuk memeriksa printer.
+            </p>
+
+            <div className="p-4 rounded-2xl bg-gray-50 border border-brand-border text-xs text-brand-muted text-left w-full space-y-1 mb-6">
+              <p className="font-semibold text-brand-dark">Proteksi Anti-Cetak Ganda Aktif:</p>
+              <p>• Cetak otomatis dinonaktifkan demi mencegah pemborosan kertas.</p>
+              <p>• Hanya petugas resmi yang dapat mengotorisasi cetak ulang setelah mengecek kabel & kertas printer.</p>
+            </div>
+
+            {isAdminAuthorized ? (
+              <div className="w-full bg-blue-50 border border-blue-200 rounded-2xl p-4 text-left mb-6 space-y-2">
+                <p className="text-xs font-bold text-brand-blue flex items-center gap-1.5">
+                  <CheckCircle2 className="w-4 h-4 text-green-600" />
+                  <span>Akses Petugas Diberikan</span>
+                </p>
+                <p className="text-xs text-brand-dark">
+                  Silakan periksa printer iWare IW D260UL (lampu error, ketersediaan roll kertas, dan kabel USB), lalu tentukan tindakan:
+                </p>
+              </div>
+            ) : null}
+          </div>
+        ) : isConfirming ? (
+          // 2. CONFIRMATION STATE FOR BROWSER PRINTING (Per prompt: "Apakah foto sudah tercetak?")
           <div className="flex flex-col items-center animate-fadeIn">
             {/* Visual Icon */}
             <div className="w-28 h-28 rounded-3xl bg-brand-blue-light flex items-center justify-center mb-6 border border-blue-200">
               <Printer className="w-14 h-14 text-brand-blue stroke-[1.8]" />
             </div>
 
-            {/* Heading & Subtitle */}
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-brand-dark tracking-tight mb-2">
-              Konfirmasi Hasil Cetak
+            {/* Exact Heading from Specification */}
+            <h1 className="text-3xl font-extrabold text-brand-dark tracking-tight mb-3">
+              Apakah foto sudah tercetak?
             </h1>
             <p className="text-[18px] leading-relaxed text-brand-muted max-w-xs mb-6">
-              Apakah struk foto berhasil keluar dari printer{' '}
+              Periksa mulut printer{' '}
               <span className="font-semibold text-brand-dark">
-                {settings.printerMode === 'desktop-usb' ? 'USB (iWare)' : 'Thermal'}
+                {settings.printerMode === 'windows-usb' ? 'iWare USB' : 'Thermal'}
               </span>
-              ?
+              . Apakah struk foto telah keluar?
             </p>
 
             <div className="p-4 rounded-2xl bg-gray-50 border border-brand-border text-xs text-brand-muted text-left w-full space-y-1 mb-4">
-              <p className="font-semibold text-brand-dark">Catatan Petugas:</p>
-              <p>• Jika struk telah keluar sempurna, ketuk <b>"Ya, Berhasil Dicetak"</b> untuk menyelesaikan sesi.</p>
-              <p>• Jika kertas macet atau belum tercetak, ketuk <b>"Belum / Cetak Ulang"</b>.</p>
+              <p className="font-semibold text-brand-dark">Petunjuk:</p>
+              <p>• Tekan <b>"YA, SUDAH TERCETAK"</b> jika kertas struk sudah keluar rapi.</p>
+              <p>• Tekan <b>"BELUM, PANGGIL PETUGAS"</b> jika kertas belum keluar atau terjadi kendala.</p>
             </div>
           </div>
         ) : !isError ? (
-          // 2. ACTIVE PRINTING STATE
+          // 3. ACTIVE PRINTING STATE
           <div className="flex flex-col items-center">
             {/* Animated Printer Icon Container */}
             <div className="relative mb-8">
@@ -70,14 +126,14 @@ export const PrintingScreen: React.FC = () => {
             <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-brand-blue-light text-brand-blue font-semibold text-base">
               <span className="w-2.5 h-2.5 rounded-full bg-brand-blue animate-ping" />
               <span>
-                {settings.printerMode === 'desktop-usb'
-                  ? 'Membuka dialog cetak USB...'
+                {settings.printerMode === 'windows-usb'
+                  ? 'Membuka dialog cetak iWare USB...'
                   : 'Mengirim data ke VSC TM-80D...'}
               </span>
             </div>
           </div>
         ) : (
-          // 3. ERROR STATE
+          // 4. ERROR STATE
           <div className="flex flex-col items-center">
             {/* Warning Icon */}
             <div className="w-24 h-24 rounded-3xl bg-brand-red-light flex items-center justify-center mb-6 border border-red-200">
@@ -115,24 +171,63 @@ export const PrintingScreen: React.FC = () => {
       </main>
 
       {/* Action Footer */}
-      {isConfirming ? (
+      {isStaffAssistanceOpen ? (
         <footer className="w-full p-6 pb-8 bg-white border-t border-brand-border max-w-md mx-auto flex flex-col gap-3">
-          {/* Primary Confirmation Button */}
+          {!isAdminAuthorized ? (
+            <button
+              onClick={() => setIsAdminPinModalOpen(true)}
+              className="w-full h-[64px] bg-brand-blue hover:bg-brand-blue-hover active:scale-[0.98] text-white font-semibold text-[19px] rounded-2xl flex items-center justify-center gap-3 shadow-sm transition-all"
+            >
+              <Lock className="w-5 h-5" />
+              <span>Otorisasi Petugas (PIN)</span>
+            </button>
+          ) : (
+            <>
+              {/* Authorized Admin Actions */}
+              <button
+                onClick={() => {
+                  setIsStaffAssistanceOpen(false);
+                  setIsAdminAuthorized(false);
+                  printPhoto();
+                }}
+                className="w-full h-[62px] bg-brand-blue hover:bg-brand-blue-hover active:scale-[0.98] text-white font-semibold text-[19px] rounded-2xl flex items-center justify-center gap-3 shadow-sm transition-all"
+              >
+                <RefreshCw className="w-5 h-5" />
+                <span>Cetak Ulang Struk</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  setIsStaffAssistanceOpen(false);
+                  setIsAdminAuthorized(false);
+                  retryDesktopPrint();
+                }}
+                className="w-full h-[52px] bg-white hover:bg-gray-50 text-brand-dark font-semibold text-[17px] rounded-xl flex items-center justify-center gap-2 border border-brand-border"
+              >
+                <ArrowLeft className="w-5 h-5" />
+                <span>Kembali ke Layar Foto</span>
+              </button>
+            </>
+          )}
+        </footer>
+      ) : isConfirming ? (
+        <footer className="w-full p-6 pb-8 bg-white border-t border-brand-border max-w-md mx-auto flex flex-col gap-3">
+          {/* Primary Action from Spec: YA, SUDAH TERCETAK */}
           <button
             onClick={confirmDesktopPrintSuccess}
             className="w-full h-[64px] bg-brand-blue hover:bg-brand-blue-hover active:scale-[0.98] text-white font-semibold text-[20px] rounded-2xl flex items-center justify-center gap-3 transition-all duration-150 shadow-sm"
           >
             <CheckCircle2 className="w-6 h-6 stroke-[2.2]" />
-            <span>Ya, Berhasil Dicetak</span>
+            <span>YA, SUDAH TERCETAK</span>
           </button>
 
-          {/* Retry / Return to Photo */}
+          {/* Secondary Action from Spec: BELUM, PANGGIL PETUGAS */}
           <button
-            onClick={retryDesktopPrint}
-            className="w-full h-[52px] bg-white hover:bg-gray-50 active:bg-gray-100 text-brand-dark font-semibold text-[17px] rounded-xl flex items-center justify-center gap-2 transition-colors border border-brand-border"
+            onClick={handleReportUncertainPrint}
+            className="w-full h-[56px] bg-white hover:bg-gray-50 active:bg-gray-100 text-brand-muted font-semibold text-[17px] rounded-xl flex items-center justify-center gap-2 transition-colors border-2 border-brand-border"
           >
-            <RefreshCw className="w-4 h-4 text-brand-muted" />
-            <span>Belum / Cetak Ulang</span>
+            <AlertTriangle className="w-5 h-5 text-amber-500" />
+            <span>BELUM, PANGGIL PETUGAS</span>
           </button>
         </footer>
       ) : isError ? (
@@ -154,6 +249,13 @@ export const PrintingScreen: React.FC = () => {
           </button>
         </footer>
       ) : null}
+
+      {/* Admin PIN Gate for Staff Assistance Authorization */}
+      <AdminPinModal
+        isOpen={isAdminPinModalOpen}
+        onClose={() => setIsAdminPinModalOpen(false)}
+        onSuccess={handleAdminAuthSuccess}
+      />
     </div>
   );
 };

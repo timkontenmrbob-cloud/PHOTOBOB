@@ -6,15 +6,15 @@ import {
   PrintResult,
 } from '../types';
 import { AndroidCleanterPrinter } from './printers/AndroidCleanterPrinter';
-import { DesktopBrowserPrinter } from './printers/DesktopBrowserPrinter';
+import { WindowsBrowserPrinter } from './printers/WindowsBrowserPrinter';
 
 class PrinterService {
   private adapters: Map<PrinterMode, PrinterAdapter> = new Map();
   private isPrintingLocked = false;
 
   constructor() {
+    this.registerAdapter(new WindowsBrowserPrinter());
     this.registerAdapter(new AndroidCleanterPrinter());
-    this.registerAdapter(new DesktopBrowserPrinter());
   }
 
   public registerAdapter(adapter: PrinterAdapter): void {
@@ -24,8 +24,8 @@ class PrinterService {
   public getAdapter(mode: PrinterMode): PrinterAdapter {
     const adapter = this.adapters.get(mode);
     if (!adapter) {
-      console.warn(`Adapter ${mode} tidak ditemukan, fallback ke desktop-usb.`);
-      return this.adapters.get('desktop-usb')!;
+      console.warn(`Adapter ${mode} tidak ditemukan, fallback ke windows-usb.`);
+      return this.adapters.get('windows-usb')!;
     }
     return adapter;
   }

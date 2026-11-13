@@ -97,7 +97,7 @@ vercel
 
 ## 📖 Dokumentasi Lengkap
 
-1. [Panduan Desktop USB Printer Testing Mode (iWare & Laptop)](./DESKTOP_USB_SETUP.md)
+1. [Panduan Pengujian Windows USB iWare IW D260UL (Laptop Windows)](./WINDOWS_IWARE_TESTING.md)
 2. [Panduan Setup Samsung Galaxy A35 (Kiosk Mode)](./SAMSUNG_A35_SETUP.md)
 3. [Panduan Kalibrasi Printer VSC TM-80D](./VSC_TM80D_CALIBRATION.md)
 4. [Daftar Periksa Pengujian Fisik (Checklist)](./TESTING_CHECKLIST.md)

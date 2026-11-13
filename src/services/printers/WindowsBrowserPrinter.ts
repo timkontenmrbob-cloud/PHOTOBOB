@@ -5,9 +5,9 @@ import {
   PrintResult,
 } from '../../types';
 
-export class DesktopBrowserPrinter implements PrinterAdapter {
-  readonly id = 'desktop-usb';
-  readonly name = 'Desktop USB (Browser Print)';
+export class WindowsBrowserPrinter implements PrinterAdapter {
+  readonly id = 'windows-usb';
+  readonly name = 'Windows USB (iWare IW D260UL)';
 
   async checkHealth(_settings: AdminSettings): Promise<{
     ready: boolean;
@@ -17,13 +17,13 @@ export class DesktopBrowserPrinter implements PrinterAdapter {
     if (typeof window === 'undefined' || typeof window.print !== 'function') {
       return {
         ready: false,
-        error: 'Pencetakan browser (window.print) tidak didukung pada lingkungan ini.',
+        error: 'Pencetakan browser (window.print) tidak didukung pada sistem ini.',
       };
     }
 
     return {
       ready: true,
-      info: 'Browser Print siap digunakan untuk printer USB (iWare / 80mm ESC/POS).',
+      info: 'Windows Browser Printer siap. Kompatibel dengan driver iWare IW D260UL (80mm) & Chrome Kiosk Printing.',
     };
   }
 
@@ -31,12 +31,12 @@ export class DesktopBrowserPrinter implements PrinterAdapter {
     const { previewUrl, settings } = params;
 
     if (settings.mockPrinter) {
-      console.warn('Mode simulasi Desktop USB aktif.');
-      await new Promise((res) => setTimeout(res, 1500));
+      console.warn('Mode simulasi Windows USB aktif.');
+      await new Promise((res) => setTimeout(res, 1200));
       return {
         success: true,
         needsConfirmation: true,
-        jobId: `mock-desktop-${Date.now()}`,
+        jobId: `mock-win-${Date.now()}`,
         isMock: true,
       };
     }
@@ -49,7 +49,7 @@ export class DesktopBrowserPrinter implements PrinterAdapter {
     }
 
     try {
-      // 1. Prepare / update the dedicated print DOM container
+      // 1. Prepare / update the dedicated print-only DOM container
       let printContainer = document.getElementById('photobox-print-target');
       if (!printContainer) {
         printContainer = document.createElement('div');
@@ -57,16 +57,18 @@ export class DesktopBrowserPrinter implements PrinterAdapter {
         document.body.appendChild(printContainer);
       }
 
-      // Populate print container with receipt image
+      // Populate print container with receipt image (header + 1:1 photo + footer combined)
       printContainer.innerHTML = `
         <div class="photobox-receipt-wrapper">
-          <img src="${previewUrl}" alt="Photobox Print" id="photobox-print-image" />
+          <img src="${previewUrl}" alt="Photobox Struk iWare" id="photobox-print-image" />
         </div>
       `;
 
-      // 2. Inject or update dynamic @media print styles
-      const paperWidthMm = settings.desktopPaperWidthMm || 80;
-      const marginMm = settings.desktopMarginMm || 0;
+      // 2. Inject or update dynamic @media print styles sized for 80mm roll
+      const paperWidthMm = settings.windowsPaperWidthMm || 80;
+      const printableWidthMm = settings.windowsPrintableWidthMm || 72;
+      const pageHeightMm = settings.windowsPageHeightMm || 120;
+      const marginMm = settings.windowsMarginMm || 0;
 
       let styleEl = document.getElementById('photobox-print-dynamic-styles') as HTMLStyleElement | null;
       if (!styleEl) {
@@ -75,10 +77,11 @@ export class DesktopBrowserPrinter implements PrinterAdapter {
         document.head.appendChild(styleEl);
       }
 
+      // We support printer-driver page size calibration with zero margins to prevent blank second pages
       styleEl.textContent = `
         @media print {
           @page {
-            size: ${paperWidthMm}mm auto;
+            size: ${paperWidthMm}mm ${pageHeightMm}mm;
             margin: ${marginMm}mm;
           }
           html, body {
@@ -89,27 +92,32 @@ export class DesktopBrowserPrinter implements PrinterAdapter {
             height: auto !important;
             overflow: visible !important;
           }
-          /* Hide all application UI during print */
+          /* Completely hide all UI buttons, navigation, and modals */
           #root {
             display: none !important;
           }
-          /* Display only the dedicated receipt container */
+          /* Render only the dedicated print container without extra pages */
           #photobox-print-target {
             display: block !important;
             width: ${paperWidthMm}mm !important;
+            max-width: ${paperWidthMm}mm !important;
             margin: 0 auto !important;
             padding: ${marginMm}mm !important;
             box-sizing: border-box !important;
             page-break-after: avoid !important;
+            page-break-before: avoid !important;
             page-break-inside: avoid !important;
           }
           .photobox-receipt-wrapper {
             width: 100% !important;
+            max-width: ${printableWidthMm}mm !important;
             margin: 0 auto !important;
             text-align: center !important;
+            page-break-inside: avoid !important;
           }
           #photobox-print-image {
             width: 100% !important;
+            max-width: ${printableWidthMm}mm !important;
             height: auto !important;
             display: block !important;
             margin: 0 auto !important;
@@ -125,34 +133,43 @@ export class DesktopBrowserPrinter implements PrinterAdapter {
         }
       `;
 
-      // Wait a tick for DOM and image decode
+      // 3. Ensure image is fully loaded and decoded before triggering window.print()
       const img = printContainer.querySelector('#photobox-print-image') as HTMLImageElement;
-      if (img && !img.complete) {
-        await new Promise((resolve) => {
-          img.onload = resolve;
-          img.onerror = resolve;
-        });
+      if (img) {
+        if (!img.complete) {
+          await new Promise((resolve) => {
+            img.onload = resolve;
+            img.onerror = resolve;
+          });
+        }
+        if (typeof img.decode === 'function') {
+          try {
+            await img.decode();
+          } catch {
+            // decode fallback
+          }
+        }
       }
 
-      // Small pause to ensure rendering engine is ready for print
-      await new Promise((resolve) => setTimeout(resolve, 150));
+      // Small pause to guarantee GPU / print rasterizer readiness
+      await new Promise((resolve) => setTimeout(resolve, 200));
 
-      // 3. Trigger native browser print
+      // 4. Trigger native browser print (works for both standard Chrome and Chrome --kiosk-printing)
       window.print();
 
-      // Return with needsConfirmation: true
-      // Because window.print() returns immediately after dialog is dismissed (either Print or Cancel was clicked)
+      // Return needsConfirmation: true
+      // window.print() opens print dialog or submits to printer driver without confirming physical paper output
       return {
         success: true,
         needsConfirmation: true,
-        jobId: `desktop-${Date.now()}`,
+        jobId: `win-${Date.now()}`,
       };
     } catch (err: unknown) {
       const error = err as Error;
       return {
         success: false,
         errorMessage: 'Gagal membuka dialog cetak browser: ' + (error.message || String(error)),
-        errorFix: 'Periksa pengaturan pop-up browser atau hubungkan printer USB.',
+        errorFix: 'Periksa driver iWare IW D260UL atau pastikan pop-up browser tidak diblokir.',
       };
     }
   }

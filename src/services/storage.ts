@@ -1,6 +1,6 @@
 import { AdminSettings } from '../types';
 
-const SETTINGS_KEY = 'photobox_admin_settings_v2';
+const SETTINGS_KEY = 'photobox_admin_settings_v3';
 
 function isMobilePlatform(): boolean {
   if (typeof navigator === 'undefined') return false;
@@ -15,16 +15,18 @@ export const DEFAULT_SETTINGS: AdminSettings = {
   showSessionCode: true,
   adminPin: '1234',
 
-  // Active printer mode: default to desktop-usb if opened on laptop/desktop, or android-bluetooth on mobile
-  printerMode: isMobilePlatform() ? 'android-bluetooth' : 'desktop-usb',
+  // Active printer mode: default to windows-usb on laptop/desktop, android-bluetooth on mobile
+  printerMode: isMobilePlatform() ? 'android-bluetooth' : 'windows-usb',
 
-  // Desktop USB configuration (for iWare / 80mm USB thermal printer)
-  desktopPaperWidthMm: 80,
-  desktopMarginMm: 0,
+  // Windows USB / iWare IW D260UL Configuration
+  windowsPaperWidthMm: 80,
+  windowsPrintableWidthMm: 72,
+  windowsPageHeightMm: 120, // default 120mm receipt length, adjustable
+  windowsMarginMm: 0, // default 0mm for continuous thermal roll
 
-  // Thermal Print Configuration
+  // Thermal Print Calibration (Raster & Canvas)
   paperWidth: 80,
-  rasterDotWidth: 576,
+  rasterDotWidth: 576, // 72mm at 203 DPI = 576 dots
   marginHorizontal: 12,
   headerHeight: 110,
   footerHeight: 110,

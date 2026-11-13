@@ -17,6 +17,9 @@ import {
   Laptop,
   Smartphone,
   Command,
+  Zap,
+  RefreshCw,
+  Lock,
 } from 'lucide-react';
 import { usePhotobox } from '../context/PhotoboxContext';
 import { AdminSettings, CleanterHealthResponse } from '../types';
@@ -42,12 +45,51 @@ export const AdminSettingsScreen: React.FC<{ onClose: () => void }> = ({ onClose
   const [printerError, setPrinterError] = useState<string | null>(null);
   const [windowsPrinterStatus, setWindowsPrinterStatus] = useState<string | null>(null);
 
+  // QZ Tray state
+  const [detectedPrinters, setDetectedPrinters] = useState<string[]>([]);
+  const [isLoadingPrinters, setIsLoadingPrinters] = useState(false);
+  const [qzStatus, setQzStatus] = useState<'idle' | 'checking' | 'connected' | 'disconnected'>('idle');
+  const [qzStatusMessage, setQzStatusMessage] = useState<string | null>(null);
+
   const [isTestPrinting, setIsTestPrinting] = useState(false);
   const [testPrintMessage, setTestPrintMessage] = useState<string | null>(null);
 
   const [cameraStatus, setCameraStatus] = useState<string>('Memeriksa...');
   const [pwaStatus, setPwaStatus] = useState<string>('Memeriksa cache offline...');
   const [saveSuccessNotice, setSaveSuccessNotice] = useState(false);
+
+  // Fetch list of Windows printers via QZ Tray WebSocket
+  const fetchQZPrinters = async () => {
+    setIsLoadingPrinters(true);
+    setQzStatus('checking');
+    try {
+      const qzPrinter = printerService.getQZPrinter();
+      const list = await qzPrinter.listPrinters(formData);
+      setDetectedPrinters(list);
+      setQzStatus('connected');
+      if (list.length > 0) {
+        setQzStatusMessage(`QZ Tray terhubung. ${list.length} printer Windows terdeteksi.`);
+        // If current qzPrinterName is not in the list or is default, find best candidate
+        if (!formData.qzPrinterName || !list.includes(formData.qzPrinterName)) {
+          const match = list.find((p) => /iware|d260|pos|thermal|receipt|80mm/i.test(p));
+          if (match) {
+            setFormData((prev) => ({ ...prev, qzPrinterName: match }));
+          } else if (list.length > 0) {
+            setFormData((prev) => ({ ...prev, qzPrinterName: list[0] }));
+          }
+        }
+      } else {
+        setQzStatusMessage('QZ Tray aktif terhubung, namun tidak ada printer terpasang di Windows.');
+      }
+    } catch (err: unknown) {
+      setQzStatus('disconnected');
+      const msg = (err as Error)?.message || String(err);
+      setQzStatusMessage(`Gagal terhubung ke QZ Tray: ${msg}`);
+      setPrinterError(`QZ Tray belum berjalan di Windows (${msg})`);
+    } finally {
+      setIsLoadingPrinters(false);
+    }
+  };
 
   // Check printer health based on active printer mode
   const checkPrinterHealth = async () => {
@@ -58,7 +100,15 @@ export const AdminSettingsScreen: React.FC<{ onClose: () => void }> = ({ onClose
     const res = await printerService.checkHealth(formData);
     setIsCheckingPrinter(false);
 
-    if (formData.printerMode === 'windows-usb') {
+    if (formData.printerMode === 'windows-qz') {
+      if (res.ready) {
+        setQzStatus('connected');
+        setWindowsPrinterStatus(res.info || 'QZ Tray siap mencetak otomatis.');
+      } else {
+        setQzStatus('disconnected');
+        setPrinterError(res.error || 'QZ Tray tidak aktif.');
+      }
+    } else if (formData.printerMode === 'windows-usb') {
       if (res.ready) {
         setWindowsPrinterStatus(res.info || 'Windows Browser Print siap untuk printer iWare IW D260UL.');
       } else {
@@ -90,9 +140,9 @@ export const AdminSettingsScreen: React.FC<{ onClose: () => void }> = ({ onClose
         });
         stream.getTracks().forEach((t) => t.stop());
         setCameraStatus(
-          formData.printerMode === 'windows-usb'
-            ? 'Webcam laptop aktif dan siap digunakan'
-            : 'Kamera depan ponsel aktif dan siap digunakan'
+          formData.printerMode === 'android-bluetooth'
+            ? 'Kamera depan ponsel aktif dan siap digunakan'
+            : 'Webcam laptop aktif dan siap digunakan'
         );
       } catch (e: unknown) {
         const err = e as Error;
@@ -118,6 +168,9 @@ export const AdminSettingsScreen: React.FC<{ onClose: () => void }> = ({ onClose
   useEffect(() => {
     checkCameraAndPwa();
     checkPrinterHealth();
+    if (formData.printerMode === 'windows-qz') {
+      fetchQZPrinters();
+    }
   }, [formData.printerMode]);
 
   const handleSave = () => {
@@ -135,7 +188,7 @@ export const AdminSettingsScreen: React.FC<{ onClose: () => void }> = ({ onClose
     }
   };
 
-  // Run Test Print (works for both Windows USB and Android Cleanter)
+  // Run Test Print (works for Windows QZ Tray, Windows USB Browser, and Android Cleanter)
   const handleTestPrint = async () => {
     setIsTestPrinting(true);
     setTestPrintMessage(null);
@@ -156,7 +209,9 @@ export const AdminSettingsScreen: React.FC<{ onClose: () => void }> = ({ onClose
 
       ctx.font = 'normal 17px sans-serif';
       const targetPrinterName =
-        formData.printerMode === 'windows-usb'
+        formData.printerMode === 'windows-qz'
+          ? `${formData.qzPrinterName || 'iWare IW D260UL'} (QZ Tray Auto)`
+          : formData.printerMode === 'windows-usb'
           ? 'iWare IW D260UL (Windows USB)'
           : 'VSC TM-80D (Android Bluetooth)';
       ctx.fillText(`Target: ${targetPrinterName}`, canvas.width / 2, 85);
@@ -179,7 +234,15 @@ export const AdminSettingsScreen: React.FC<{ onClose: () => void }> = ({ onClose
       }
 
       ctx.font = 'bold 16px sans-serif';
-      ctx.fillText('STATUS: iWare IW D260UL OK', canvas.width / 2, 330);
+      ctx.fillText(
+        formData.printerMode === 'windows-qz'
+          ? 'STATUS: QZ TRAY AUTO-PRINT OK'
+          : formData.printerMode === 'windows-usb'
+          ? 'STATUS: WINDOWS BROWSER PRINT OK'
+          : 'STATUS: CLEANTER BLUETOOTH OK',
+        canvas.width / 2,
+        330
+      );
     }
 
     const testDataUrl = canvas.toDataURL('image/png');
@@ -194,7 +257,9 @@ export const AdminSettingsScreen: React.FC<{ onClose: () => void }> = ({ onClose
 
     setIsTestPrinting(false);
     if (res.success) {
-      if (formData.printerMode === 'windows-usb') {
+      if (formData.printerMode === 'windows-qz') {
+        setTestPrintMessage(`✅ Test print berhasil terkirim langsung ke "${formData.qzPrinterName || 'iWare'}" via QZ Tray tanpa dialog!`);
+      } else if (formData.printerMode === 'windows-usb') {
         setTestPrintMessage('✅ Dialog cetak Windows browser berhasil dibuka untuk printer iWare!');
       } else {
         setTestPrintMessage('✅ Test print berhasil terkirim ke printer via Cleanter!');
@@ -233,8 +298,10 @@ export const AdminSettingsScreen: React.FC<{ onClose: () => void }> = ({ onClose
           <p className="text-xs text-brand-muted">
             Mode Aktif:{' '}
             <span className="font-semibold text-brand-dark">
-              {formData.printerMode === 'windows-usb'
-                ? 'Windows USB — Testing (iWare IW D260UL)'
+              {formData.printerMode === 'windows-qz'
+                ? 'Windows — Automatic Printing (QZ Tray / iWare)'
+                : formData.printerMode === 'windows-usb'
+                ? 'Windows USB — Browser Print (iWare)'
                 : 'Android Bluetooth — Event (VSC TM-80D)'}
             </span>
           </p>
@@ -314,15 +381,53 @@ export const AdminSettingsScreen: React.FC<{ onClose: () => void }> = ({ onClose
               <h3 className="font-extrabold text-brand-dark text-base">Pilih Mode Printer & Perangkat</h3>
             </div>
             <span className="text-xs px-2.5 py-1 rounded-full font-bold bg-white text-brand-blue border border-blue-200">
-              {formData.printerMode === 'windows-usb' ? 'Windows USB Aktif' : 'Android Bluetooth Aktif'}
+              {formData.printerMode === 'windows-qz'
+                ? 'Windows QZ Tray Aktif'
+                : formData.printerMode === 'windows-usb'
+                ? 'Windows USB Aktif'
+                : 'Android Bluetooth Aktif'}
             </span>
           </div>
           <p className="text-xs text-brand-muted">
             Hanya satu mode yang aktif dalam satu waktu. Pilih sesuai target perangkat dan printer yang Anda gunakan:
           </p>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-            {/* Mode 1: Windows USB — Testing */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1">
+            {/* Mode 1: Windows Automatic Printing (QZ Tray) - RECOMMENDED */}
+            <button
+              type="button"
+              onClick={() => {
+                setFormData({ ...formData, printerMode: 'windows-qz' });
+              }}
+              className={`p-4 rounded-xl text-left border-2 transition-all flex flex-col justify-between ${
+                formData.printerMode === 'windows-qz'
+                  ? 'border-brand-blue bg-white shadow-sm ring-2 ring-brand-blue/20'
+                  : 'border-brand-border bg-white/70 hover:bg-white'
+              }`}
+            >
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="font-bold text-xs uppercase tracking-wider text-green-700 bg-green-100 px-2 py-0.5 rounded-full font-sans">
+                    Rekomendasi
+                  </span>
+                  {formData.printerMode === 'windows-qz' && (
+                    <span className="w-2.5 h-2.5 rounded-full bg-brand-blue" />
+                  )}
+                </div>
+                <span className="font-extrabold text-sm text-brand-dark flex items-center gap-1.5 mb-1">
+                  <Zap className="w-4 h-4 text-brand-blue" />
+                  <span>Windows QZ Tray (Auto)</span>
+                </span>
+                <p className="text-[11px] text-brand-muted leading-relaxed">
+                  • <b>1-Klik Cetak Otomatis</b><br />
+                  • Tanpa dialog cetak browser<br />
+                  • Target: <b>iWare IW D260UL</b><br />
+                  • Kamera: Webcam laptop
+                </p>
+              </div>
+            </button>
+
+            {/* Mode 2: Windows USB — Browser Print */}
             <button
               type="button"
               onClick={() => setFormData({ ...formData, printerMode: 'windows-usb' })}
@@ -332,25 +437,28 @@ export const AdminSettingsScreen: React.FC<{ onClose: () => void }> = ({ onClose
                   : 'border-brand-border bg-white/70 hover:bg-white'
               }`}
             >
-              <div className="flex items-center justify-between mb-2">
-                <span className="font-bold text-sm text-brand-dark flex items-center gap-1.5">
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="font-bold text-xs uppercase tracking-wider text-gray-600 bg-gray-100 px-2 py-0.5 rounded-full font-sans">
+                    Testing Fallback
+                  </span>
+                  {formData.printerMode === 'windows-usb' && (
+                    <span className="w-2.5 h-2.5 rounded-full bg-brand-blue" />
+                  )}
+                </div>
+                <span className="font-extrabold text-sm text-brand-dark flex items-center gap-1.5 mb-1">
                   <Laptop className="w-4 h-4 text-brand-blue" />
-                  <span>Windows USB — Testing</span>
+                  <span>Windows USB (Browser)</span>
                 </span>
-                {formData.printerMode === 'windows-usb' && (
-                  <span className="w-2.5 h-2.5 rounded-full bg-brand-blue" />
-                )}
+                <p className="text-[11px] text-brand-muted leading-relaxed">
+                  • Menggunakan dialog <code>window.print()</code><br />
+                  • Driver Windows iWare<br />
+                  • Tanpa install QZ Tray
+                </p>
               </div>
-              <p className="text-xs text-brand-muted leading-relaxed">
-                • Laptop Windows 10/11<br />
-                • Printer <b>iWare IW D260UL</b> (USB)<br />
-                • Kamera: Webcam laptop<br />
-                • Native browser printing via driver Windows<br />
-                • Tanpa butuh Cleanter / Bluetooth
-              </p>
             </button>
 
-            {/* Mode 2: Android Bluetooth — Event */}
+            {/* Mode 3: Android Bluetooth — Event */}
             <button
               type="button"
               onClick={() => setFormData({ ...formData, printerMode: 'android-bluetooth' })}
@@ -360,21 +468,26 @@ export const AdminSettingsScreen: React.FC<{ onClose: () => void }> = ({ onClose
                   : 'border-brand-border bg-white/70 hover:bg-white'
               }`}
             >
-              <div className="flex items-center justify-between mb-2">
-                <span className="font-bold text-sm text-brand-dark flex items-center gap-1.5">
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="font-bold text-xs uppercase tracking-wider text-blue-700 bg-blue-100 px-2 py-0.5 rounded-full font-sans">
+                    Event Mobile
+                  </span>
+                  {formData.printerMode === 'android-bluetooth' && (
+                    <span className="w-2.5 h-2.5 rounded-full bg-brand-blue" />
+                  )}
+                </div>
+                <span className="font-extrabold text-sm text-brand-dark flex items-center gap-1.5 mb-1">
                   <Smartphone className="w-4 h-4 text-brand-blue" />
-                  <span>Android Bluetooth — Event</span>
+                  <span>Android Bluetooth</span>
                 </span>
-                {formData.printerMode === 'android-bluetooth' && (
-                  <span className="w-2.5 h-2.5 rounded-full bg-brand-blue" />
-                )}
+                <p className="text-[11px] text-brand-muted leading-relaxed">
+                  • Samsung Galaxy A35<br />
+                  • Printer: <b>VSC TM-80D</b><br />
+                  • Bridge Cleanter (Port 9100)<br />
+                  • Kamera depan selfie (1:1)
+                </p>
               </div>
-              <p className="text-xs text-brand-muted leading-relaxed">
-                • Ponsel Samsung Galaxy A35<br />
-                • Printer <b>VSC TM-80D</b> (Bluetooth)<br />
-                • Kamera depan ponsel (1:1)<br />
-                • Bridge Cleanter (localhost:9100)
-              </p>
             </button>
           </div>
         </div>
@@ -382,7 +495,144 @@ export const AdminSettingsScreen: React.FC<{ onClose: () => void }> = ({ onClose
         {/* TAB 1: STATUS & KONEKSI */}
         {activeTab === 'status' && (
           <div className="space-y-6">
-            {formData.printerMode === 'windows-usb' ? (
+            {formData.printerMode === 'windows-qz' ? (
+              // WINDOWS QZ TRAY STATUS & CONTROL CARD
+              <div className="bg-white border-2 border-brand-border rounded-2xl p-5 shadow-sm space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-green-50 text-green-600 flex items-center justify-center border border-green-200">
+                      <Zap className="w-5 h-5 fill-current" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-lg text-brand-dark">Pencetakan Otomatis QZ Tray</h3>
+                      <p className="text-xs text-brand-muted">Direct WebSocket • iWare IW D260UL (80mm Thermal)</p>
+                    </div>
+                  </div>
+                  <span
+                    className={`text-xs px-3 py-1 rounded-full font-bold flex items-center gap-1.5 ${
+                      qzStatus === 'connected'
+                        ? 'bg-green-100 text-green-700 border border-green-200'
+                        : qzStatus === 'checking'
+                        ? 'bg-blue-100 text-blue-700 border border-blue-200'
+                        : 'bg-red-100 text-brand-red border border-red-200'
+                    }`}
+                  >
+                    <span
+                      className={`w-2 h-2 rounded-full ${
+                        qzStatus === 'connected'
+                          ? 'bg-green-600'
+                          : qzStatus === 'checking'
+                          ? 'bg-blue-600 animate-ping'
+                          : 'bg-red-600'
+                      }`}
+                    />
+                    <span>
+                      {qzStatus === 'connected'
+                        ? 'Terhubung'
+                        : qzStatus === 'checking'
+                        ? 'Memeriksa...'
+                        : 'Terputus'}
+                    </span>
+                  </span>
+                </div>
+
+                <div className="p-4 rounded-xl bg-gray-50 border border-brand-border text-sm space-y-3">
+                  <div className="flex items-center gap-2 text-brand-dark font-medium text-xs">
+                    {qzStatus === 'connected' ? (
+                      <CheckCircle2 className="w-4 h-4 text-green-600 flex-shrink-0" />
+                    ) : (
+                      <AlertCircle className="w-4 h-4 text-amber-500 flex-shrink-0" />
+                    )}
+                    <span>{qzStatusMessage || 'Memeriksa status service QZ Tray...'}</span>
+                  </div>
+
+                  {/* PRINTER DETECT & SELECT */}
+                  <div className="bg-white p-3.5 rounded-xl border border-gray-200 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-bold text-brand-dark flex items-center gap-1.5">
+                        <Printer className="w-4 h-4 text-brand-blue" />
+                        <span>Pilih Printer Windows Terdeteksi:</span>
+                      </label>
+                      <button
+                        type="button"
+                        onClick={fetchQZPrinters}
+                        disabled={isLoadingPrinters}
+                        className="text-xs px-3 py-1 bg-brand-blue-light text-brand-blue font-bold rounded-lg flex items-center gap-1 hover:bg-blue-100 transition-colors"
+                      >
+                        <RefreshCw className={`w-3.5 h-3.5 ${isLoadingPrinters ? 'animate-spin' : ''}`} />
+                        <span>{isLoadingPrinters ? 'Memindai...' : 'Muat Ulang Printer'}</span>
+                      </button>
+                    </div>
+
+                    {detectedPrinters.length > 0 ? (
+                      <select
+                        value={formData.qzPrinterName}
+                        onChange={(e) => setFormData({ ...formData, qzPrinterName: e.target.value })}
+                        className="w-full h-11 px-3 rounded-lg border border-brand-border bg-white text-sm font-semibold text-brand-dark focus:ring-2 focus:ring-brand-blue/30 focus:outline-none"
+                      >
+                        {detectedPrinters.map((name) => (
+                          <option key={name} value={name}>
+                            {name} {/iware|d260|pos-80/i.test(name) ? '★ (Rekomendasi iWare)' : ''}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <div className="text-xs text-amber-700 bg-amber-50 p-2.5 rounded-lg border border-amber-200">
+                        {isLoadingPrinters
+                          ? 'Sedang mencari printer yang terpasang di Windows via QZ Tray...'
+                          : 'Belum ada printer yang terdeteksi via QZ Tray. Pastikan QZ Tray berjalan di Windows dan klik "Muat Ulang Printer".'}
+                      </div>
+                    )}
+
+                    <div className="flex items-center gap-2 pt-1">
+                      <span className="text-[11px] text-brand-muted whitespace-nowrap">Input Manual:</span>
+                      <input
+                        type="text"
+                        placeholder="Contoh: iWare IW D260UL atau POS-80"
+                        value={formData.qzPrinterName}
+                        onChange={(e) => setFormData({ ...formData, qzPrinterName: e.target.value })}
+                        className="flex-1 h-8 px-2.5 text-xs rounded border border-brand-border"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Quick Setup Checklist */}
+                  <div className="p-3 bg-blue-50/70 rounded-xl border border-blue-200 text-xs text-brand-dark space-y-1.5">
+                    <p className="font-bold text-brand-blue flex items-center gap-1.5">
+                      <Command className="w-4 h-4" />
+                      <span>Langkah Cepat Setup 1-Klik Cetak di Windows:</span>
+                    </p>
+                    <p>1. Buka software <b>QZ Tray</b> di laptop (pastikan ikon hijau muncul di taskbar dekat jam).</p>
+                    <p>2. Sambungkan kabel USB printer <b>iWare IW D260UL</b> ke laptop dan nyalakan.</p>
+                    <p>3. Klik tombol <b>"Muat Ulang Printer"</b> di atas, lalu pilih nama printer iWare Anda.</p>
+                    <p>4. Klik <b>"TEST PRINT (QZ TRAY)"</b> di bawah untuk mencoba cetak struk tanpa dialog browser!</p>
+                    <p className="text-[11px] text-brand-muted pt-1">
+                      💡 <i>Tips Bebas Pop-up:</i> Saat pertama kali dialog otorisasi QZ Tray muncul di Windows, centang <b>"Remember this decision"</b> lalu klik <b>"Allow"</b> agar seterusnya cetak otomatis senyap!
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap gap-3">
+                  <button
+                    onClick={checkPrinterHealth}
+                    disabled={isCheckingPrinter}
+                    className="px-5 py-3 bg-white border border-brand-border text-brand-dark rounded-xl font-bold text-sm flex items-center gap-2 hover:bg-gray-50"
+                  >
+                    <Wifi className="w-4 h-4 text-brand-blue" />
+                    <span>{isCheckingPrinter ? 'Memeriksa...' : 'Cek Status QZ Tray'}</span>
+                  </button>
+
+                  <button
+                    onClick={handleTestPrint}
+                    disabled={isTestPrinting}
+                    className="px-5 py-3 bg-brand-blue text-white rounded-xl font-bold text-sm flex items-center gap-2 shadow-sm hover:bg-brand-blue-hover"
+                  >
+                    <Printer className="w-4 h-4" />
+                    <span>{isTestPrinting ? 'Mengirim...' : 'TEST PRINT (QZ TRAY)'}</span>
+                  </button>
+                </div>
+              </div>
+            ) : formData.printerMode === 'windows-usb' ? (
               // WINDOWS USB / iWare STATUS CARD
               <div className="bg-white border-2 border-brand-border rounded-2xl p-5 shadow-sm space-y-4">
                 <div className="flex items-center gap-3">
@@ -610,10 +860,12 @@ export const AdminSettingsScreen: React.FC<{ onClose: () => void }> = ({ onClose
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="font-bold text-base text-brand-dark">
-                    Uji Cetak Kalibrasi ({formData.printerMode === 'windows-usb' ? 'iWare IW D260UL' : 'VSC TM-80D'})
+                    Uji Cetak Kalibrasi ({formData.printerMode === 'windows-qz' ? (formData.qzPrinterName || 'iWare IW D260UL (QZ Tray)') : formData.printerMode === 'windows-usb' ? 'iWare IW D260UL (Browser)' : 'VSC TM-80D'})
                   </h3>
                   <p className="text-xs text-brand-muted">
-                    {formData.printerMode === 'windows-usb'
+                    {formData.printerMode === 'windows-qz'
+                      ? 'Kirimkan sampel pola kalibrasi langsung via QZ Tray tanpa dialog cetak browser'
+                      : formData.printerMode === 'windows-usb'
                       ? 'Membuka dialog cetak Windows dengan struk kalibrasi 80mm'
                       : 'Kirimkan sampel pola kalibrasi langsung ke VSC TM-80D via Cleanter'}
                   </p>
@@ -637,7 +889,7 @@ export const AdminSettingsScreen: React.FC<{ onClose: () => void }> = ({ onClose
               <h3 className="font-bold text-base text-brand-dark">Kalibrasi Ukuran Kertas & Cetakan</h3>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-                {formData.printerMode === 'windows-usb' ? (
+                {formData.printerMode === 'windows-usb' || formData.printerMode === 'windows-qz' ? (
                   <>
                     <div>
                       <label className="block font-semibold text-brand-dark mb-1">Lebar Kertas Fisik (mm)</label>
@@ -838,6 +1090,95 @@ export const AdminSettingsScreen: React.FC<{ onClose: () => void }> = ({ onClose
                 )}
               </div>
             </div>
+
+            {/* OPSI & SECURITY QZ TRAY */}
+            {formData.printerMode === 'windows-qz' && (
+              <div className="bg-white border border-brand-border rounded-2xl p-5 space-y-4 shadow-sm text-sm">
+                <div className="flex items-center gap-2 text-brand-dark">
+                  <Zap className="w-5 h-5 text-brand-blue" />
+                  <h3 className="font-bold text-base">Opsi Mesin Cetak QZ Tray (iWare)</h3>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                  <div>
+                    <label className="block font-semibold mb-1">Metode Pengiriman Gambar</label>
+                    <select
+                      value={formData.qzUseRawEscpos ? 'raw' : 'driver'}
+                      onChange={(e) => setFormData({ ...formData, qzUseRawEscpos: e.target.value === 'raw' })}
+                      className="w-full h-10 px-3 rounded-lg border border-brand-border bg-white font-medium"
+                    >
+                      <option value="driver">Driver Windows (Pixel / Raster) — Rekomendasi iWare</option>
+                      <option value="raw">Raw ESC/POS Direct Bytecode</option>
+                    </select>
+                    <p className="text-[11px] text-brand-muted mt-1">
+                      {formData.qzUseRawEscpos
+                        ? 'Kirim bytecode grafis ESC/POS langsung ke printer.'
+                        : 'Merender melalui spooler driver Windows iWare (sangat presisi 80mm).'}
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="block font-semibold mb-1">Auto Feed & Potong Kertas (Cut)</label>
+                    <div className="flex items-center gap-2 mt-2">
+                      <input
+                        type="checkbox"
+                        id="qzFeedAndCut"
+                        checked={formData.qzFeedAndCut}
+                        onChange={(e) => setFormData({ ...formData, qzFeedAndCut: e.target.checked })}
+                        className="w-5 h-5 accent-brand-blue rounded"
+                      />
+                      <label htmlFor="qzFeedAndCut" className="text-xs text-brand-dark cursor-pointer font-medium">
+                        Kirim perintah feed kertas & auto-cut setelah foto selesai
+                      </label>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Silent Printing & Security */}
+                <div className="pt-3 border-t border-gray-200">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Lock className="w-4 h-4 text-brand-blue" />
+                    <h4 className="font-bold text-xs text-brand-dark uppercase tracking-wide">
+                      Bebas Dialog Konfirmasi (Silent Printing Otomatis)
+                    </h4>
+                  </div>
+
+                  <div className="p-3 bg-gray-50 rounded-xl border border-gray-200 text-xs text-brand-dark space-y-2 mb-3">
+                    <p className="font-semibold text-brand-blue">Dua Pilihan Menghilangkan Pop-up QZ Tray:</p>
+                    <p>
+                      <b>Cara 1 (Praktis):</b> Saat dialog izin QZ Tray pertama kali muncul di layar Windows, centang <b>"Remember this decision"</b> lalu klik <b>"Allow"</b>. QZ Tray tidak akan meminta konfirmasi lagi untuk domain ini.
+                    </p>
+                    <p>
+                      <b>Cara 2 (Digital Certificate):</b> Masukkan URL sertifikat digital dan endpoint tanda tangan SHA-512 jika menggunakan server tanda tangan mandiri (misal <code>scripts/qz-signer.js</code>).
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                    <div>
+                      <label className="block font-semibold mb-1">Digital Certificate URL (Opsional)</label>
+                      <input
+                        type="text"
+                        placeholder="http://localhost:8190/cert atau kosongkan"
+                        value={formData.qzCertificateUrl}
+                        onChange={(e) => setFormData({ ...formData, qzCertificateUrl: e.target.value })}
+                        className="w-full h-10 px-3 rounded-lg border border-brand-border"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block font-semibold mb-1">Signature Endpoint URL (Opsional)</label>
+                      <input
+                        type="text"
+                        placeholder="http://localhost:8190/sign atau kosongkan"
+                        value={formData.qzSignatureEndpoint}
+                        onChange={(e) => setFormData({ ...formData, qzSignatureEndpoint: e.target.value })}
+                        className="w-full h-10 px-3 rounded-lg border border-brand-border"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
 

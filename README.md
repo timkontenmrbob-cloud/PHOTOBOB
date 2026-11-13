@@ -1,8 +1,9 @@
-# Self-Service Photobox PWA (Dual Mode: Desktop USB & Android Bluetooth)
+# Self-Service Photobox PWA (QZ Tray Auto, Windows USB & Android Bluetooth)
 
-Aplikasi Photobox Mandiri (*Self-Service Photobox Kiosk*) berbasis Progressive Web App (PWA) yang mendukung dua mode operasional:
-1. **Mode Desktop USB (Testing)**: Dijalankan pada laptop (Windows / macOS) menggunakan webcam laptop dan printer thermal receipt **iWare** (80mm) yang terhubung via kabel USB melalui dialog cetak browser native (`window.print()`).
-2. **Mode Android Bluetooth (Event)**: Dijalankan pada ponsel **Samsung Galaxy A35** dan printer thermal **VSC TM-80D (80mm)** melalui koneksi Bluetooth dan Android bridge lokal **Cleanter** (`http://localhost:9100`).
+Aplikasi Photobox Mandiri (*Self-Service Photobox Kiosk*) berbasis Progressive Web App (PWA) yang mendukung tiga mode operasional printer:
+1. **Windows — Automatic Printing (QZ Tray)**: Dijalankan pada laptop Windows 10/11 menggunakan webcam laptop dan printer thermal receipt **iWare IW D260UL (80mm USB)** via software bridge **QZ Tray**. **1-Klik cetak otomatis tanpa dialog cetak browser!**
+2. **Windows USB — Browser Print (Testing Fallback)**: Dijalankan pada laptop menggunakan dialog cetak native browser (`window.print()`) melalui driver printer Windows yang terpasang.
+3. **Android Bluetooth — Event (Mobile Kiosk)**: Dijalankan pada ponsel **Samsung Galaxy A35** dan printer thermal **VSC TM-80D (80mm)** melalui koneksi Bluetooth dan Android bridge lokal **Cleanter** (`http://localhost:9100`).
 
 Dilengkapi antarmuka pengunjung yang bersih, modern, ramah lansia, dan sepenuhnya berbahasa Indonesia.
 
@@ -10,10 +11,11 @@ Dilengkapi antarmuka pengunjung yang bersih, modern, ramah lansia, dan sepenuhny
 
 ## ✨ Fitur Utama
 
-- **Dukungan Dua Mode Printer (Modular Adapter Architecture)**:
-  - **Desktop USB (Testing)**: Mencetak ke printer USB iWare 80mm menggunakan dialog sistem browser tanpa server/bridge tambahan. Dilengkapi langkah konfirmasi operator sebelum beralih ke layar sukses.
+- **Dukungan Tiga Mode Printer (Modular Adapter Architecture)**:
+  - **Windows QZ Tray (Auto)**: Cetak otomatis 1-klik langsung ke printer iWare tanpa dialog browser, auto-reconnect WebSocket, deteksi printer Windows, dan dukungan silent printing.
+  - **Windows USB (Browser)**: Mencetak ke printer USB iWare 80mm menggunakan dialog sistem browser tanpa bridge tambahan.
   - **Android Bluetooth (Event)**: Integrasi penuh Cleanter API lokal ke VSC TM-80D dengan dithering Floyd–Steinberg dan penanganan status bluetooth/kertas.
-  - Arsitektur berbasis adapter (`PrinterAdapter`) yang siap diperluas (misal integrasi QZ Tray di masa depan).
+  - Arsitektur berbasis adapter (`PrinterAdapter`) yang modular dan terisolasi.
 - **Kamera Responsif**:
   - Pada laptop: Otomatis mendeteksi dan menggunakan webcam laptop bawaan maupun webcam USB eksternal.
   - Pada ponsel: Menggunakan kamera depan (*facingMode: "user"*).
@@ -97,7 +99,8 @@ vercel
 
 ## 📖 Dokumentasi Lengkap
 
-1. [Panduan Pengujian Windows USB iWare IW D260UL (Laptop Windows)](./WINDOWS_IWARE_TESTING.md)
-2. [Panduan Setup Samsung Galaxy A35 (Kiosk Mode)](./SAMSUNG_A35_SETUP.md)
-3. [Panduan Kalibrasi Printer VSC TM-80D](./VSC_TM80D_CALIBRATION.md)
-4. [Daftar Periksa Pengujian Fisik (Checklist)](./TESTING_CHECKLIST.md)
+1. [Panduan Setup QZ Tray & iWare IW D260UL (1-Klik Cetak Otomatis di Windows)](./QZTRAY_WINDOWS_SETUP.md)
+2. [Panduan Pengujian Windows USB iWare IW D260UL (Browser Print Fallback)](./WINDOWS_IWARE_TESTING.md)
+3. [Panduan Setup Samsung Galaxy A35 (Kiosk Mode)](./SAMSUNG_A35_SETUP.md)
+4. [Panduan Kalibrasi Printer VSC TM-80D](./VSC_TM80D_CALIBRATION.md)
+5. [Daftar Periksa Pengujian Fisik (Checklist)](./TESTING_CHECKLIST.md)

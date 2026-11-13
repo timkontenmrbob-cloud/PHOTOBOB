@@ -8,7 +8,7 @@ export type ScreenState =
   | 'success'
   | 'print-error';
 
-export type PrinterMode = 'windows-usb' | 'android-bluetooth';
+export type PrinterMode = 'windows-qz' | 'windows-usb' | 'android-bluetooth';
 
 export interface FrameItem {
   id: string; // 'frame-1' | 'frame-2' | 'frame-3'
@@ -27,10 +27,23 @@ export interface AdminSettings {
   showSessionCode: boolean;
   adminPin: string;
 
-  // Active Printing Mode: 'windows-usb' (Windows Laptop / iWare USB) or 'android-bluetooth' (Samsung A35 / Cleanter)
+  // Active Printing Mode:
+  // 'windows-qz' (Windows Automatic Silent Printing via QZ Tray - Recommended for Windows testing)
+  // 'windows-usb' (Windows Browser Printing dialog via window.print - Fallback)
+  // 'android-bluetooth' (Samsung A35 / VSC TM-80D via Cleanter bridge)
   printerMode: PrinterMode;
 
-  // Windows USB Configuration (iWare IW D260UL / 80mm ESC/POS)
+  // QZ Tray Automatic Printing Configuration (Windows iWare IW D260UL)
+  qzPrinterName: string; // Exact Windows printer name (e.g. 'iWare IW D260UL' or 'POS-80')
+  qzHost: string; // default 'localhost'
+  qzPort: number; // default 8182 (secure) or 8181
+  qzUseSecure: boolean; // default true on https, false on http
+  qzCertificateUrl: string; // optional URL to fetch X.509 certificate PEM
+  qzSignatureEndpoint: string; // optional URL for SHA-512 signing
+  qzUseRawEscpos: boolean; // false = driver raster mode (default), true = direct ESC/POS bytes
+  qzFeedAndCut: boolean; // default true (send feed & paper cut)
+
+  // Windows USB Browser Configuration (iWare IW D260UL / 80mm ESC/POS)
   windowsPaperWidthMm: number; // default 80 mm
   windowsPrintableWidthMm: number; // default 72 mm
   windowsPageHeightMm: number; // default 120 mm (adjustable)

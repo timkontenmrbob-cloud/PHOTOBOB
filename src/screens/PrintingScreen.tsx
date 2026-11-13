@@ -72,13 +72,21 @@ export const PrintingScreen: React.FC = () => {
                   <span>Akses Petugas Diberikan</span>
                 </p>
                 <p className="text-xs text-brand-dark">
-                  Silakan periksa printer iWare IW D260UL (lampu error, ketersediaan roll kertas, dan kabel USB), lalu tentukan tindakan:
+                  Silakan periksa printer{' '}
+                  <span className="font-semibold">
+                    {settings.printerMode === 'windows-qz'
+                      ? (settings.qzPrinterName || 'iWare IW D260UL')
+                      : settings.printerMode === 'windows-usb'
+                      ? 'iWare IW D260UL'
+                      : 'VSC TM-80D'}
+                  </span>{' '}
+                  (lampu error, ketersediaan roll kertas, dan kabel data), lalu tentukan tindakan:
                 </p>
               </div>
             ) : null}
           </div>
         ) : isConfirming ? (
-          // 2. CONFIRMATION STATE FOR BROWSER PRINTING (Per prompt: "Apakah foto sudah tercetak?")
+          // 2. CONFIRMATION STATE FOR PHYSICAL PRINTING (Per prompt: "Apakah foto sudah tercetak?")
           <div className="flex flex-col items-center animate-fadeIn">
             {/* Visual Icon */}
             <div className="w-28 h-28 rounded-3xl bg-brand-blue-light flex items-center justify-center mb-6 border border-blue-200">
@@ -92,7 +100,11 @@ export const PrintingScreen: React.FC = () => {
             <p className="text-[18px] leading-relaxed text-brand-muted max-w-xs mb-6">
               Periksa mulut printer{' '}
               <span className="font-semibold text-brand-dark">
-                {settings.printerMode === 'windows-usb' ? 'iWare USB' : 'Thermal'}
+                {settings.printerMode === 'windows-qz'
+                  ? (settings.qzPrinterName || 'iWare IW D260UL')
+                  : settings.printerMode === 'windows-usb'
+                  ? 'iWare USB'
+                  : 'VSC TM-80D'}
               </span>
               . Apakah struk foto telah keluar?
             </p>
@@ -126,7 +138,9 @@ export const PrintingScreen: React.FC = () => {
             <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-brand-blue-light text-brand-blue font-semibold text-base">
               <span className="w-2.5 h-2.5 rounded-full bg-brand-blue animate-ping" />
               <span>
-                {settings.printerMode === 'windows-usb'
+                {settings.printerMode === 'windows-qz'
+                  ? `Mengirim cetak otomatis ke ${settings.qzPrinterName || 'iWare IW D260UL'} via QZ Tray...`
+                  : settings.printerMode === 'windows-usb'
                   ? 'Membuka dialog cetak iWare USB...'
                   : 'Mengirim data ke VSC TM-80D...'}
               </span>

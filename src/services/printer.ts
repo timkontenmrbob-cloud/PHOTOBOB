@@ -7,12 +7,16 @@ import {
 } from '../types';
 import { AndroidCleanterPrinter } from './printers/AndroidCleanterPrinter';
 import { WindowsBrowserPrinter } from './printers/WindowsBrowserPrinter';
+import { QZTrayPrinter } from './printers/QZTrayPrinter';
 
 class PrinterService {
   private adapters: Map<PrinterMode, PrinterAdapter> = new Map();
+  private qzPrinterInstance: QZTrayPrinter;
   private isPrintingLocked = false;
 
   constructor() {
+    this.qzPrinterInstance = new QZTrayPrinter();
+    this.registerAdapter(this.qzPrinterInstance);
     this.registerAdapter(new WindowsBrowserPrinter());
     this.registerAdapter(new AndroidCleanterPrinter());
   }
@@ -21,11 +25,15 @@ class PrinterService {
     this.adapters.set(adapter.id, adapter);
   }
 
+  public getQZPrinter(): QZTrayPrinter {
+    return this.qzPrinterInstance;
+  }
+
   public getAdapter(mode: PrinterMode): PrinterAdapter {
     const adapter = this.adapters.get(mode);
     if (!adapter) {
-      console.warn(`Adapter ${mode} tidak ditemukan, fallback ke windows-usb.`);
-      return this.adapters.get('windows-usb')!;
+      console.warn(`Adapter ${mode} tidak ditemukan, fallback ke windows-qz.`);
+      return this.adapters.get('windows-qz') || this.adapters.get('windows-usb')!;
     }
     return adapter;
   }

@@ -152,8 +152,8 @@ export async function composePhotoboxLayout(options: ComposeOptions): Promise<Co
   const printWidth = settings.rasterDotWidth || 576;
   const marginX = settings.marginHorizontal || 12;
   const photoSize = printWidth - marginX * 2; // Square 1:1
-  const headerHeight = settings.headerHeight || 110;
-  const footerHeight = settings.footerHeight || 110;
+  const headerHeight = settings.headerHeight || 75;
+  const footerHeight = settings.footerHeight || 75;
   const totalHeight = headerHeight + photoSize + footerHeight;
 
   const canvas = document.createElement('canvas');
@@ -169,26 +169,26 @@ export async function composePhotoboxLayout(options: ComposeOptions): Promise<Co
   ctx.fillStyle = '#FFFFFF';
   ctx.fillRect(0, 0, printWidth, totalHeight);
 
-  // 2. Render HEADER
+  // 2. Render HEADER (Compact with zero excess top margin)
   ctx.fillStyle = '#141E30';
   ctx.textAlign = 'center';
 
   // Header Title
   const headerText = settings.headerText || settings.appTitle || 'PHOTOBOX';
-  ctx.font = 'bold 30px "Inter", "Segoe UI", Arial, sans-serif';
-  ctx.fillText(headerText, printWidth / 2, headerHeight * 0.48);
+  ctx.font = 'bold 26px "Inter", "Segoe UI", Arial, sans-serif';
+  ctx.fillText(headerText, printWidth / 2, headerHeight * 0.40);
 
   // Header Subtitle / Decorative Divider
-  ctx.font = '500 16px "Inter", "Segoe UI", Arial, sans-serif';
+  ctx.font = '500 14px "Inter", "Segoe UI", Arial, sans-serif';
   ctx.fillStyle = '#475569';
-  ctx.fillText('★  SELF-SERVICE PHOTOBOX  ★', printWidth / 2, headerHeight * 0.76);
+  ctx.fillText('★  SELF-SERVICE PHOTOBOX  ★', printWidth / 2, headerHeight * 0.72);
 
   // Thin header rule
   ctx.strokeStyle = '#141E30';
   ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.moveTo(marginX, headerHeight - 12);
-  ctx.lineTo(printWidth - marginX, headerHeight - 12);
+  ctx.moveTo(marginX, headerHeight - 6);
+  ctx.lineTo(printWidth - marginX, headerHeight - 6);
   ctx.stroke();
 
   // 3. Render SQUARE PHOTO (1:1)
@@ -198,21 +198,21 @@ export async function composePhotoboxLayout(options: ComposeOptions): Promise<Co
   // 4. Render FRAME OVERLAY (1:1)
   ctx.drawImage(frameImg, marginX, photoY, photoSize, photoSize);
 
-  // 5. Render FOOTER
+  // 5. Render FOOTER (Compact)
   const footerY = headerHeight + photoSize;
 
   // Thin footer rule
   ctx.strokeStyle = '#141E30';
   ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.moveTo(marginX, footerY + 14);
-  ctx.lineTo(printWidth - marginX, footerY + 14);
+  ctx.moveTo(marginX, footerY + 8);
+  ctx.lineTo(printWidth - marginX, footerY + 8);
   ctx.stroke();
 
   // Footer Main Text
   ctx.fillStyle = '#141E30';
-  ctx.font = 'bold 22px "Inter", "Segoe UI", Arial, sans-serif';
-  ctx.fillText(settings.footerText || 'Capture Your Moment', printWidth / 2, footerY + 48);
+  ctx.font = 'bold 20px "Inter", "Segoe UI", Arial, sans-serif';
+  ctx.fillText(settings.footerText || 'Capture Your Moment', printWidth / 2, footerY + 36);
 
   // Date and Session Ref
   const dateText = dateTimeStr || formatIndonesianDate();
@@ -226,9 +226,9 @@ export async function composePhotoboxLayout(options: ComposeOptions): Promise<Co
   }
 
   if (subFooter) {
-    ctx.font = '500 15px "Inter", "Segoe UI", Arial, sans-serif';
+    ctx.font = '500 13px "Inter", "Segoe UI", Arial, sans-serif';
     ctx.fillStyle = '#475569';
-    ctx.fillText(subFooter, printWidth / 2, footerY + 76);
+    ctx.fillText(subFooter, printWidth / 2, footerY + 58);
   }
 
   // 6. Apply Brightness & Contrast Optimization for thermal print

@@ -5,6 +5,7 @@ import {
   PrintJobParams,
   PrintResult,
 } from '../../types';
+import { PHOTOBOX_CERTIFICATE_PEM, signQZTrayRequest } from './qzSecurity';
 
 export class QZTrayPrinter implements PrinterAdapter {
   readonly id = 'windows-qz' as const;
@@ -27,65 +28,35 @@ export class QZTrayPrinter implements PrinterAdapter {
   }
 
   /**
-   * Configure certificate and signature handlers if provided.
+   * Configure certificate and signature handlers for silent, prompt-free printing.
+   * By providing the X.509 certificate and browser-side RSA-SHA512 signature,
+   * QZ Tray enables the "Remember this decision" option and keeps "Allow" active.
    */
-  private configureSecurity(settings: AdminSettings): void {
+  private configureSecurity(_settings: AdminSettings): void {
     if (this.securityInitialized) return;
 
     try {
-      // 1. Digital Certificate Promise
+      // 1. Digital Certificate Promise (X.509 Certificate for "PHOTOBOX KIOSK")
       qz.security.setCertificatePromise((resolve: (cert?: string) => void) => {
-        if (settings.qzCertificateUrl && settings.qzCertificateUrl.trim() !== '') {
-          console.log('[QZ Tray] Mengambil sertifikat dari:', settings.qzCertificateUrl);
-          fetch(settings.qzCertificateUrl)
-            .then((res) => {
-              if (!res.ok) throw new Error(`HTTP ${res.status}`);
-              return res.text();
-            })
-            .then((cert) => resolve(cert.trim()))
-            .catch((err) => {
-              console.warn('[QZ Tray] Gagal mengunduh sertifikat:', err);
-              resolve(undefined);
-            });
-        } else {
-          // Dev / Unsigned mode
-          resolve(undefined);
-        }
+        resolve(PHOTOBOX_CERTIFICATE_PEM);
       });
 
-      // 2. Request Signing Promise (SHA-512)
+      // 2. Request Signing Promise (RSA-SHA512 via browser WebCrypto)
       qz.security.setSignatureAlgorithm('SHA512');
       qz.security.setSignaturePromise((toSign: string) => {
-        return (resolve: (sig?: string) => void) => {
-          if (settings.qzSignatureEndpoint && settings.qzSignatureEndpoint.trim() !== '') {
-            fetch(settings.qzSignatureEndpoint, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ request: toSign }),
-            })
-              .then((res) => {
-                if (!res.ok) throw new Error(`HTTP ${res.status}`);
-                return res.text();
-              })
-              .then((signature) => {
-                try {
-                  const parsed = JSON.parse(signature);
-                  resolve(parsed.signature || signature.trim());
-                } catch {
-                  resolve(signature.trim());
-                }
-              })
-              .catch((err) => {
-                console.warn('[QZ Tray] Gagal meminta tanda tangan dari server:', err);
-                resolve(undefined);
-              });
-          } else {
+        return async (resolve: (sig?: string) => void) => {
+          try {
+            const signature = await signQZTrayRequest(toSign);
+            resolve(signature);
+          } catch (signErr) {
+            console.error('[QZ Tray] Gagal membuat digital signature di browser:', signErr);
             resolve(undefined);
           }
         };
       });
 
       this.securityInitialized = true;
+      console.log('[QZ Tray] Digital certificate & WebCrypto signer berhasil diaktifkan.');
     } catch (err) {
       console.warn('[QZ Tray] Error saat mengkonfigurasi security handler:', err);
     }
@@ -308,6 +279,8 @@ export class QZTrayPrinter implements PrinterAdapter {
         });
 
         printData = [
+          '\x1B\x40', // ESC @ (Initialize printer, reset any top line spacing)
+          '\x1B\x61\x01', // ESC a 1 (Center alignment)
           {
             type: 'raw',
             format: 'image',
@@ -321,17 +294,17 @@ export class QZTrayPrinter implements PrinterAdapter {
         ];
 
         if (settings.qzFeedAndCut) {
-          printData.push('\x1Bd\x03');
-          printData.push('\x1DV\x42\x00');
+          printData.push('\x1Bd\x02'); // Feed 2 lines before cutting
+          printData.push('\x1DV\x42\x00'); // GS V 66 0 (Cut paper)
         }
       } else {
-        // --- MODE B: PIXEL DRIVER MODE (NATIVE 80mm THERMAL COMPLIANT) ---
+        // --- MODE B: PIXEL DRIVER MODE (NATIVE 80mm THERMAL COMPLIANT - ZERO TOP MARGIN) ---
         console.log(`[QZTrayPrinter] Mengirim pekerjaan via Windows Driver (Pixel) ke "${resolvedPrinter}"...`);
 
-        // Use native thermal driver scaling without forcing bogus DPI or fixed page bounds
+        // Use scaleContent: false so driver does NOT center image on A4 page length (297mm)
         config = qz.configs.create(resolvedPrinter, {
           margins: 0,
-          scaleContent: true,
+          scaleContent: false,
           rasterize: false,
           jobName: `PHOTOBOX_${sessionRef}`,
         });

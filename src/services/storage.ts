@@ -26,7 +26,7 @@ export const DEFAULT_SETTINGS: AdminSettings = {
   qzUseSecure: typeof window !== 'undefined' && window.location.protocol === 'https:',
   qzCertificateUrl: '',
   qzSignatureEndpoint: '',
-  qzUseRawEscpos: false, // false = Driver Windows raster/pixel mode (default), true = direct ESC/POS bytes
+  qzUseRawEscpos: true, // true = Direct ESC/POS bytecode (0mm margin, zero top whitespace, recommended for iWare 80mm thermal)
   qzFeedAndCut: true,
 
   // Windows USB Browser Configuration (iWare IW D260UL / 80mm ESC/POS)
@@ -39,8 +39,8 @@ export const DEFAULT_SETTINGS: AdminSettings = {
   paperWidth: 80,
   rasterDotWidth: 576, // 72mm at 203 DPI = 576 dots
   marginHorizontal: 12,
-  headerHeight: 110,
-  footerHeight: 110,
+  headerHeight: 75,
+  footerHeight: 75,
   brightness: 1.05,
   contrast: 1.25,
   feedLines: 3,

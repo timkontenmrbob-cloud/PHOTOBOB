@@ -212,10 +212,10 @@ export const AdminSettingsScreen: React.FC<{ onClose: () => void }> = ({ onClose
     setIsTestPrinting(true);
     setTestPrintMessage(null);
 
-    // Create a 576-dot test canvas pattern (72mm at 203 DPI)
+    // Create a compact 576-dot test canvas pattern (72mm at 203 DPI) with zero top margin
     const canvas = document.createElement('canvas');
     canvas.width = formData.rasterDotWidth || 576;
-    canvas.height = 380;
+    canvas.height = 250;
     const ctx = canvas.getContext('2d');
     if (ctx) {
       ctx.fillStyle = '#FFFFFF';
@@ -223,36 +223,35 @@ export const AdminSettingsScreen: React.FC<{ onClose: () => void }> = ({ onClose
 
       ctx.fillStyle = '#141E30';
       ctx.textAlign = 'center';
-      ctx.font = 'bold 26px sans-serif';
-      ctx.fillText('=== TEST PRINT KALIBRASI ===', canvas.width / 2, 45);
+      ctx.font = 'bold 22px sans-serif';
+      ctx.fillText('=== TEST PRINT KALIBRASI ===', canvas.width / 2, 28);
 
-      ctx.font = 'normal 17px sans-serif';
+      ctx.font = 'normal 15px sans-serif';
       const targetPrinterName =
         formData.printerMode === 'windows-qz'
           ? `${formData.qzPrinterName || 'iWare IW D260UL'} (QZ Tray Auto)`
           : formData.printerMode === 'windows-usb'
           ? 'iWare IW D260UL (Windows USB)'
           : 'VSC TM-80D (Android Bluetooth)';
-      ctx.fillText(`Target: ${targetPrinterName}`, canvas.width / 2, 85);
-      ctx.fillText(`Lebar Titik: ${canvas.width} dots (72 mm)`, canvas.width / 2, 118);
-      ctx.fillText(`Tanggal: ${new Date().toLocaleString('id-ID')}`, canvas.width / 2, 150);
+      ctx.fillText(`Target: ${targetPrinterName}`, canvas.width / 2, 58);
+      ctx.fillText(`Lebar: ${canvas.width} dots (72 mm) • ${new Date().toLocaleTimeString('id-ID')}`, canvas.width / 2, 85);
 
       // Calibration ruler test bar
-      ctx.fillRect(20, 180, canvas.width - 40, 8);
-      ctx.font = 'bold 15px sans-serif';
-      ctx.fillText('|<- 0 mm                       576 dots / 72 mm ->|', canvas.width / 2, 215);
+      ctx.fillRect(20, 105, canvas.width - 40, 6);
+      ctx.font = 'bold 13px sans-serif';
+      ctx.fillText('|<- 0 mm                       576 dots / 72 mm ->|', canvas.width / 2, 130);
 
       // Checkerboard calibration pattern
-      const size = 16;
+      const size = 14;
       for (let x = 20; x < canvas.width - 20; x += size) {
-        for (let y = 235; y < 285; y += size) {
+        for (let y = 145; y < 185; y += size) {
           if (((x / size) + (y / size)) % 2 === 0) {
             ctx.fillRect(x, y, size, size);
           }
         }
       }
 
-      ctx.font = 'bold 16px sans-serif';
+      ctx.font = 'bold 15px sans-serif';
       ctx.fillText(
         formData.printerMode === 'windows-qz'
           ? 'STATUS: QZ TRAY AUTO-PRINT OK'
@@ -260,7 +259,7 @@ export const AdminSettingsScreen: React.FC<{ onClose: () => void }> = ({ onClose
           ? 'STATUS: WINDOWS BROWSER PRINT OK'
           : 'STATUS: CLEANTER BLUETOOTH OK',
         canvas.width / 2,
-        330
+        220
       );
     }
 
@@ -269,8 +268,8 @@ export const AdminSettingsScreen: React.FC<{ onClose: () => void }> = ({ onClose
 
     const currentPersisted = loadSettings();
     const activeTestSettings: AdminSettings = {
-      ...formData,
       ...currentPersisted,
+      ...formData,
       printerMode: formData.printerMode,
       qzPrinterName: formData.qzPrinterName,
     };
@@ -1288,13 +1287,13 @@ export const AdminSettingsScreen: React.FC<{ onClose: () => void }> = ({ onClose
                       onChange={(e) => setFormData({ ...formData, qzUseRawEscpos: e.target.value === 'raw' })}
                       className="w-full h-10 px-3 rounded-lg border border-brand-border bg-white font-medium"
                     >
-                      <option value="driver">Driver Windows (Pixel / Raster) — Rekomendasi iWare</option>
-                      <option value="raw">Raw ESC/POS Direct Bytecode</option>
+                      <option value="raw">Raw ESC/POS Direct (0mm Margin / Tanpa Spasi Atas) — Rekomendasi iWare</option>
+                      <option value="driver">Driver Windows (Pixel / Raster Spooler)</option>
                     </select>
                     <p className="text-[11px] text-brand-muted mt-1">
                       {formData.qzUseRawEscpos
-                        ? 'Kirim bytecode grafis ESC/POS langsung ke printer.'
-                        : 'Merender melalui spooler driver Windows iWare (sangat presisi 80mm).'}
+                        ? '⚡ Raw ESC/POS: Mencetak langsung dari baris 0 hardware printer thermal tanpa margin atas driver Windows (paling hemat kertas).'
+                        : 'Driver Windows Spooler: Menggunakan layout driver Windows (dapat menyisakan spasi atas jika ukuran kertas driver belum diubah).'}
                     </p>
                   </div>
 
@@ -1324,14 +1323,21 @@ export const AdminSettingsScreen: React.FC<{ onClose: () => void }> = ({ onClose
                     </h4>
                   </div>
 
-                  <div className="p-3 bg-gray-50 rounded-xl border border-gray-200 text-xs text-brand-dark space-y-2 mb-3">
-                    <p className="font-semibold text-brand-blue">Dua Pilihan Menghilangkan Pop-up QZ Tray:</p>
-                    <p>
-                      <b>Cara 1 (Praktis):</b> Saat dialog izin QZ Tray pertama kali muncul di layar Windows, centang <b>"Remember this decision"</b> lalu klik <b>"Allow"</b>. QZ Tray tidak akan meminta konfirmasi lagi untuk domain ini.
+                  <div className="p-3 bg-blue-50/80 rounded-xl border border-blue-200 text-xs text-brand-dark space-y-2 mb-3">
+                    <p className="font-bold text-blue-900 flex items-center gap-1.5">
+                      <span>🔒</span> Sertifikat Digital "PHOTOBOX KIOSK" Sudah Terpasang
                     </p>
-                    <p>
-                      <b>Cara 2 (Digital Certificate):</b> Masukkan URL sertifikat digital dan endpoint tanda tangan SHA-512 jika menggunakan server tanda tangan mandiri (misal <code>scripts/qz-signer.js</code>).
+                    <p className="text-blue-950">
+                      Sertifikat digital X.509 dan penandatangan otomatis RSA-SHA512 telah diintegrasikan langsung ke aplikasi browser ini.
                     </p>
+                    <div className="bg-white p-2.5 rounded-lg border border-blue-200 text-blue-900 font-medium">
+                      <p className="font-bold text-blue-800 mb-1">Cara Mengaktifkan Cetak 1-Klik Tanpa Dialog:</p>
+                      <ol className="list-decimal list-inside space-y-1 text-[11px]">
+                        <li>Saat dialog izin QZ Tray muncul di Windows, centang <b>"Remember this decision"</b> (sekarang tombol "Allow" tetap aktif & bisa diklik).</li>
+                        <li>Klik tombol <b>"Allow"</b>.</li>
+                        <li>Selesai! Izin tersimpan permanen di Windows dan dialog tidak akan pernah muncul lagi.</li>
+                      </ol>
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">

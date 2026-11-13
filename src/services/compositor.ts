@@ -22,9 +22,15 @@ export interface ComposeResult {
 function loadImage(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const img = new Image();
-    img.crossOrigin = 'anonymous';
+    // Do NOT set crossOrigin on blob:, data:, or relative URLs as this triggers CORS errors in Chrome
+    if (src.startsWith('http://') || src.startsWith('https://')) {
+      img.crossOrigin = 'anonymous';
+    }
     img.onload = () => resolve(img);
-    img.onerror = (e) => reject(new Error('Gagal memuat gambar: ' + e));
+    img.onerror = (e) => {
+      console.error('[Compositor] Gagal memuat gambar dari:', src.slice(0, 60), e);
+      reject(new Error('Gagal memuat gambar: ' + e));
+    };
     img.src = src;
   });
 }
@@ -132,37 +138,50 @@ function createThermalDitherSimulation(sourceCanvas: HTMLCanvasElement): string 
 
 /**
  * Composes the vertical receipt layout:
- * [ HEADER ]
+ * [ HEADER ] (optional, omitted by default to save paper)
  * [ SQUARE PHOTO + FRAME (1:1) ]
- * [ FOOTER ]
+ * [ FOOTER ] (optional, omitted by default to save paper)
  */
 export async function composePhotoboxLayout(options: ComposeOptions): Promise<ComposeResult> {
   const { photoBlob, frameUrl, settings, sessionRef, dateTimeStr } = options;
 
   const photoUrl = URL.createObjectURL(photoBlob);
-  const [photoImg, frameImg] = await Promise.all([
-    loadImage(photoUrl),
-    loadImage(frameUrl),
-  ]);
+  let photoImg: HTMLImageElement;
+  let frameImg: HTMLImageElement | null = null;
 
-  // Clean up temporary photo object URL
-  URL.revokeObjectURL(photoUrl);
+  try {
+    photoImg = await loadImage(photoUrl);
+  } finally {
+    URL.revokeObjectURL(photoUrl);
+  }
+
+  if (frameUrl) {
+    try {
+      frameImg = await loadImage(frameUrl);
+    } catch (frameErr) {
+      console.warn('[Compositor] Gagal memuat frame overlay, melanjutkan dengan foto saja:', frameErr);
+    }
+  }
 
   // Print dimensions based on settings
   // Protect against overly wide values (> 576 dots for 80mm thermal roll causes line wrapping/split parts)
   const rawWidth = settings.rasterDotWidth || 576;
   const printWidth = Math.min(576, Math.max(384, Math.floor(rawWidth / 8) * 8));
 
-  // Margin horizontal: default 24 dots (~3mm) so photo is neatly centered and does not bleed off edges
-  const marginX = Math.max(16, settings.marginHorizontal ?? 24);
+  // User requirement: HAPUS FOOTER DAN HEADER BIAR OTOMATIS HEMAT KERTAS
+  const showHeader = settings.showHeader === true;
+  const showFooter = settings.showFooter === true;
+
+  const headerHeight = showHeader ? (settings.headerHeight || 40) : 0;
+  const footerHeight = showFooter ? (settings.footerHeight || 70) : 0;
+
+  // Margin horizontal: default 16 dots (~2mm) so photo fits centered without wasting paper
+  const marginX = settings.marginHorizontal !== undefined ? settings.marginHorizontal : 16;
   const photoSize = printWidth - marginX * 2; // Square 1:1
   const photoX = Math.round((printWidth - photoSize) / 2); // Perfectly centered horizontally
 
-  // Header height logic:
-  // If showHeader is false or headerHeight is 0, headerHeight is 0 (photo starts at top edge y=0, zero waste!)
-  const showHeader = settings.showHeader ?? true;
-  const headerHeight = showHeader ? (settings.headerHeight !== undefined ? settings.headerHeight : 40) : 0;
-  const footerHeight = settings.footerHeight !== undefined ? settings.footerHeight : 70;
+  // Total canvas height:
+  // When showHeader=false and showFooter=false, totalHeight = photoSize (PURE SQUARE PHOTO, ZERO PAPER WASTE!)
   const totalHeight = headerHeight + photoSize + footerHeight;
 
   const canvas = document.createElement('canvas');
@@ -209,6 +228,7 @@ export async function composePhotoboxLayout(options: ComposeOptions): Promise<Co
   }
 
   // 3. Render SQUARE PHOTO (1:1) - Strictly center-cropped so it never stretches or widens
+  // Starts at Y = headerHeight (Y = 0 when header is removed!)
   const photoY = headerHeight;
   const pW = photoImg.naturalWidth || photoImg.width;
   const pH = photoImg.naturalHeight || photoImg.height;
@@ -218,41 +238,45 @@ export async function composePhotoboxLayout(options: ComposeOptions): Promise<Co
   ctx.drawImage(photoImg, pX, pY, pMin, pMin, photoX, photoY, photoSize, photoSize);
 
   // 4. Render FRAME OVERLAY (1:1) - Aligned exactly over the centered photo
-  const fW = frameImg.naturalWidth || frameImg.width;
-  const fH = frameImg.naturalHeight || frameImg.height;
-  ctx.drawImage(frameImg, 0, 0, fW, fH, photoX, photoY, photoSize, photoSize);
-
-  // 5. Render FOOTER (Compact)
-  const footerY = headerHeight + photoSize;
-
-  // Thin footer rule centered with the photo
-  ctx.strokeStyle = '#141E30';
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.moveTo(photoX, footerY + 8);
-  ctx.lineTo(photoX + photoSize, footerY + 8);
-  ctx.stroke();
-
-  // Footer Main Text
-  ctx.fillStyle = '#141E30';
-  ctx.font = 'bold 20px "Inter", "Segoe UI", Arial, sans-serif';
-  ctx.fillText(settings.footerText || 'Capture Your Moment', printWidth / 2, footerY + 36);
-
-  // Date and Session Ref
-  const dateText = dateTimeStr || formatIndonesianDate();
-  let subFooter = '';
-  if (settings.showDate && settings.showSessionCode) {
-    subFooter = `${dateText}  •  #${sessionRef.slice(-6)}`;
-  } else if (settings.showDate) {
-    subFooter = dateText;
-  } else if (settings.showSessionCode) {
-    subFooter = `SESI: #${sessionRef.slice(-6)}`;
+  if (frameImg) {
+    const fW = frameImg.naturalWidth || frameImg.width;
+    const fH = frameImg.naturalHeight || frameImg.height;
+    ctx.drawImage(frameImg, 0, 0, fW, fH, photoX, photoY, photoSize, photoSize);
   }
 
-  if (subFooter) {
-    ctx.font = '500 13px "Inter", "Segoe UI", Arial, sans-serif';
-    ctx.fillStyle = '#475569';
-    ctx.fillText(subFooter, printWidth / 2, footerY + 58);
+  // 5. Render FOOTER (Only if showFooter is true and footerHeight > 0)
+  if (showFooter && footerHeight > 0) {
+    const footerY = headerHeight + photoSize;
+
+    // Thin footer rule centered with the photo
+    ctx.strokeStyle = '#141E30';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(photoX, footerY + 8);
+    ctx.lineTo(photoX + photoSize, footerY + 8);
+    ctx.stroke();
+
+    // Footer Main Text
+    ctx.fillStyle = '#141E30';
+    ctx.font = 'bold 20px "Inter", "Segoe UI", Arial, sans-serif';
+    ctx.fillText(settings.footerText || 'Capture Your Moment', printWidth / 2, footerY + 36);
+
+    // Date and Session Ref
+    const dateText = dateTimeStr || formatIndonesianDate();
+    let subFooter = '';
+    if (settings.showDate && settings.showSessionCode) {
+      subFooter = `${dateText}  •  #${sessionRef.slice(-6)}`;
+    } else if (settings.showDate) {
+      subFooter = dateText;
+    } else if (settings.showSessionCode) {
+      subFooter = `SESI: #${sessionRef.slice(-6)}`;
+    }
+
+    if (subFooter) {
+      ctx.font = '500 13px "Inter", "Segoe UI", Arial, sans-serif';
+      ctx.fillStyle = '#475569';
+      ctx.fillText(subFooter, printWidth / 2, footerY + 58);
+    }
   }
 
   // 6. Apply Brightness & Contrast Optimization for thermal print

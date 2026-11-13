@@ -287,18 +287,18 @@ export class QZTrayPrinter implements PrinterAdapter {
             flavor: 'base64',
             data: cleanBase64,
             options: {
-              language: 'ESCPOS',
-              dotDensity: 'single', // Standard 1:1 density prevents horizontal stretching and banding gaps
+              language: 'escpos',
+              imageEncoding: 'gs_v_0', // Native 203 DPI raster bit image: perfect 1:1 pixel fidelity, eliminates stretching and buffer splitting
             },
           },
+          '\x0A', // Line feed to ensure raster buffer is fully flushed to thermal printhead
           '\x1B\x61\x00', // ESC a 0 (Reset to normal left alignment)
         ];
 
         if (settings.qzFeedAndCut) {
-          // Only feed lines if feedLines is explicitly configured > 0 (prevents wasting blank paper)
-          if (settings.feedLines && settings.feedLines > 0) {
-            printData.push(`\x1Bd${String.fromCharCode(Math.min(settings.feedLines, 5))}`);
-          }
+          // Feed 2 lines so cutter cuts cleanly past the bottom edge of the photo
+          const feed = settings.feedLines && settings.feedLines > 0 ? Math.min(settings.feedLines, 5) : 2;
+          printData.push(`\x1Bd${String.fromCharCode(feed)}`);
           printData.push('\x1DV\x42\x00'); // GS V 66 0 (Cut paper cleanly at cutting position)
         }
       } else {
@@ -306,12 +306,13 @@ export class QZTrayPrinter implements PrinterAdapter {
         console.log(`[QZTrayPrinter] Mengirim pekerjaan via Windows Driver (Pixel) ke "${resolvedPrinter}"...`);
 
         const paperWidthMm = settings.windowsPaperWidthMm || 80;
+        const receiptHeightMm = Math.max(60, settings.windowsPageHeightMm || 80);
 
         config = qz.configs.create(resolvedPrinter, {
           units: 'mm',
-          size: { width: paperWidthMm }, // Match paper width without forcing rigid page breaks
+          size: { width: paperWidthMm, height: receiptHeightMm }, // Explicit dimensions avoid QZ Tray height validation error
           margins: 0,
-          scaleContent: true, // Must be true so 576px canvas scales to fit 80mm roll without tiling into several parts
+          scaleContent: true, // Must be true so canvas scales to fit 80mm roll without tiling into several parts
           rasterize: true,
           density: 203, // 203 DPI standard for thermal receipt printers
           jobName: `PHOTOBOX_${sessionRef}`,

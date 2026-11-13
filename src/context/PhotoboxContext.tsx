@@ -250,16 +250,21 @@ export const PhotoboxProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         ...prev,
         capturedPhotoBlob: photoBlob,
         capturedPhotoUrl: photoUrl,
+        hasPrinted: false,
+        printStatus: 'idle',
+        printErrorMessage: null,
+        printErrorFix: null,
       }));
 
       // Navigate to preview
       setScreen('preview');
 
       try {
+        const freshSettings = loadSettings();
         const result = await composePhotoboxLayout({
           photoBlob,
           frameUrl,
-          settings,
+          settings: freshSettings,
           sessionRef: session.sessionId,
         });
 
@@ -267,14 +272,46 @@ export const PhotoboxProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           ...prev,
           composedPrintBase64: result.cleanterBase64,
           composedPreviewUrl: result.thermalPreviewUrl, // Simulated thermal view for high fidelity
+          hasPrinted: false,
         }));
       } catch (err) {
-        console.error('Gagal membuat komposisi foto:', err);
+        console.error('Gagal membuat komposisi foto utama, mencoba fallback langsung:', err);
+        // Robust Fallback: render square photo directly to canvas so print button is NEVER disabled
+        try {
+          const fallbackImg = new Image();
+          const fallbackUrl = URL.createObjectURL(photoBlob);
+          await new Promise((res, rej) => {
+            fallbackImg.onload = res;
+            fallbackImg.onerror = rej;
+            fallbackImg.src = fallbackUrl;
+          });
+          URL.revokeObjectURL(fallbackUrl);
+
+          const canvas = document.createElement('canvas');
+          canvas.width = 576;
+          canvas.height = 576;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.fillStyle = '#FFFFFF';
+            ctx.fillRect(0, 0, 576, 576);
+            ctx.drawImage(fallbackImg, 0, 0, 576, 576);
+          }
+          const dataUrl = canvas.toDataURL('image/png');
+          const base64 = dataUrl.replace(/^data:image\/png;base64,/, '');
+          setSession((prev) => ({
+            ...prev,
+            composedPrintBase64: base64,
+            composedPreviewUrl: dataUrl,
+            hasPrinted: false,
+          }));
+        } catch (fallbackErr) {
+          console.error('Fallback komposisi juga gagal:', fallbackErr);
+        }
       } finally {
         setIsComposing(false);
       }
     },
-    [frames, session.selectedFrameId, session.sessionId, settings]
+    [frames, session.selectedFrameId, session.sessionId]
   );
 
   // 5. Retake Photo
@@ -287,6 +324,7 @@ export const PhotoboxProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       composedPrintBlob: null,
       composedPrintBase64: null,
       composedPreviewUrl: null,
+      hasPrinted: false,
       printStatus: 'idle',
       printErrorMessage: null,
       printErrorFix: null,
@@ -379,6 +417,7 @@ export const PhotoboxProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const retryDesktopPrint = useCallback(() => {
     setSession((prev) => ({
       ...prev,
+      hasPrinted: false,
       printStatus: 'idle',
       printErrorMessage: null,
       printErrorFix: null,

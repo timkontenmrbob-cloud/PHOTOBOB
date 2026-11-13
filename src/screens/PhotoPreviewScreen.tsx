@@ -36,19 +36,19 @@ export const PhotoPreviewScreen: React.FC = () => {
         <div className="w-full max-w-[320px] flex flex-col items-center">
           <div className="w-full bg-white rounded-2xl shadow-md border-2 border-brand-border p-3 overflow-hidden relative transition-all">
             {isComposing || !session.composedPrintBase64 ? (
-              <div className="aspect-[3/4] w-full flex flex-col items-center justify-center gap-3 bg-brand-blue-light/50 rounded-xl">
+              <div className="min-h-[260px] aspect-square w-full flex flex-col items-center justify-center gap-3 bg-brand-blue-light/50 rounded-xl">
                 <RefreshCw className="w-10 h-10 text-brand-blue animate-spin" />
                 <p className="text-base font-semibold text-brand-dark">Menyiapkan cetakan...</p>
               </div>
             ) : (
               <div className="w-full flex flex-col items-center">
                 {/* Simulated thermal receipt paper border */}
-                <div className="w-full bg-[#FCFCFD] rounded-lg border border-gray-200 overflow-hidden shadow-inner">
+                <div className="w-full bg-[#FCFCFD] rounded-lg border border-gray-200 overflow-hidden shadow-inner flex items-center justify-center">
                   {previewSrc && (
                     <img
                       src={previewSrc}
                       alt="Hasil Foto Photobox"
-                      className="w-full h-auto object-contain block"
+                      className="w-full h-auto max-h-[420px] object-contain block mx-auto"
                     />
                   )}
                 </div>
@@ -75,7 +75,7 @@ export const PhotoPreviewScreen: React.FC = () => {
         {/* Primary Blue Action: CETAK FOTO */}
         <button
           onClick={printPhoto}
-          disabled={isComposing || !session.composedPrintBase64 || session.hasPrinted}
+          disabled={isComposing || !session.composedPrintBase64 || (session.hasPrinted && session.printStatus === 'success')}
           className="w-full h-[64px] bg-brand-blue hover:bg-brand-blue-hover active:scale-[0.98] disabled:opacity-50 text-white font-semibold text-[20px] rounded-2xl flex items-center justify-center gap-3 transition-all duration-150 shadow-sm"
         >
           <Printer className="w-6 h-6 stroke-[2.2]" />

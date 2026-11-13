@@ -272,6 +272,8 @@ export const AdminSettingsScreen: React.FC<{ onClose: () => void }> = ({ onClose
       ...formData,
       printerMode: formData.printerMode,
       qzPrinterName: formData.qzPrinterName,
+      showHeader: formData.showHeader,
+      showFooter: formData.showFooter,
     };
 
     console.log(
@@ -1173,12 +1175,15 @@ export const AdminSettingsScreen: React.FC<{ onClose: () => void }> = ({ onClose
                         marginHorizontal: 24,
                         windowsPaperWidthMm: 80,
                         windowsPrintableWidthMm: 72,
-                        windowsPageHeightMm: 140,
+                        windowsPageHeightMm: 80,
                         windowsMarginMm: 0,
-                        headerHeight: 40,
-                        footerHeight: 70,
+                        showHeader: false,
+                        headerHeight: 0,
+                        showFooter: false,
+                        footerHeight: 0,
+                        feedLines: 2,
                       });
-                      alert('Ukuran berhasil dikalibrasi ke standar pas 80mm! Klik "Simpan Pengaturan" di bawah.');
+                      alert('Ukuran berhasil dikalibrasi ke standar super hemat 80mm (Header & Footer Nonaktif)! Klik "Simpan Pengaturan" di bawah.');
                     }}
                     className="shrink-0 px-3 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-bold text-xs shadow-xs"
                   >
@@ -1232,19 +1237,45 @@ export const AdminSettingsScreen: React.FC<{ onClose: () => void }> = ({ onClose
                   </div>
                 </div>
 
-                <div>
-                  <label className="block font-semibold text-brand-dark mb-1">
-                    Tinggi Footer Struk: {formData.footerHeight} px
-                  </label>
+                <div className="p-3 bg-blue-50/60 rounded-xl border border-blue-200/70 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="block font-bold text-brand-dark text-xs sm:text-sm">
+                      Footer Struk & Space Bawah: {formData.showFooter ? `${formData.footerHeight} px` : 'Dinonaktifkan (0 px)'}
+                    </label>
+                    <label className="flex items-center gap-1.5 cursor-pointer text-xs font-bold text-brand-blue bg-white px-2 py-1 rounded-lg border border-blue-200 shadow-xs">
+                      <input
+                        type="checkbox"
+                        checked={formData.showFooter}
+                        onChange={(e) => setFormData({ ...formData, showFooter: e.target.checked })}
+                        className="w-4 h-4 accent-brand-blue rounded"
+                      />
+                      <span>Tampilkan Footer</span>
+                    </label>
+                  </div>
+
                   <input
                     type="range"
-                    min="40"
+                    min="0"
                     max="160"
                     step="5"
-                    value={formData.footerHeight}
+                    disabled={!formData.showFooter}
+                    value={formData.showFooter ? formData.footerHeight : 0}
                     onChange={(e) => setFormData({ ...formData, footerHeight: Number(e.target.value) })}
-                    className="w-full accent-brand-blue"
+                    className="w-full accent-brand-blue disabled:opacity-30"
                   />
+
+                  <div className="text-[11px] leading-relaxed">
+                    {!formData.showFooter || formData.footerHeight === 0 ? (
+                      <p className="text-green-700 font-semibold flex items-center gap-1">
+                        <span>🌱</span>
+                        <span><b>Mode Super Hemat Kertas:</b> Tanpa footer. Kertas langsung dipotong setelah foto selesai dicetak (hemat ~2 cm kertas per cetakan).</span>
+                      </p>
+                    ) : (
+                      <p className="text-brand-muted">
+                        Footer aktif dengan teks penutup, tanggal/waktu, dan kode sesi.
+                      </p>
+                    )}
+                  </div>
                 </div>
 
                 <div>
@@ -1519,34 +1550,54 @@ export const AdminSettingsScreen: React.FC<{ onClose: () => void }> = ({ onClose
               </div>
 
               <div>
-                <label className="block font-semibold text-brand-dark mb-1">Footer Struk Foto (Bawah)</label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block font-semibold text-brand-dark">Footer Struk Foto (Bawah)</label>
+                  <label className="flex items-center gap-1.5 cursor-pointer text-xs font-bold text-brand-blue">
+                    <input
+                      type="checkbox"
+                      checked={formData.showFooter}
+                      onChange={(e) => setFormData({ ...formData, showFooter: e.target.checked })}
+                      className="w-4 h-4 accent-brand-blue rounded"
+                    />
+                    <span>Aktifkan Footer</span>
+                  </label>
+                </div>
                 <input
                   type="text"
+                  disabled={!formData.showFooter}
                   value={formData.footerText}
                   onChange={(e) => setFormData({ ...formData, footerText: e.target.value })}
-                  className="w-full h-12 px-3 rounded-xl border border-brand-border"
+                  placeholder="Contoh: Capture Your Moment"
+                  className="w-full h-12 px-3 rounded-xl border border-brand-border disabled:bg-gray-100 disabled:text-gray-400"
                 />
+                {!formData.showFooter && (
+                  <p className="text-[11px] text-green-700 font-semibold mt-1">
+                    ✓ Footer nonaktif: Foto langsung dipotong tanpa teks footer/tanggal/kode (hemat space ~2 cm).
+                  </p>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-4 pt-2">
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input
                     type="checkbox"
-                    checked={formData.showDate}
+                    disabled={!formData.showFooter}
+                    checked={formData.showFooter && formData.showDate}
                     onChange={(e) => setFormData({ ...formData, showDate: e.target.checked })}
-                    className="w-5 h-5 accent-brand-blue rounded"
+                    className="w-5 h-5 accent-brand-blue rounded disabled:opacity-40"
                   />
-                  <span className="font-medium text-xs">Cetak Tanggal & Waktu</span>
+                  <span className={`font-medium text-xs ${!formData.showFooter ? 'text-gray-400' : ''}`}>Cetak Tanggal & Waktu</span>
                 </label>
 
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input
                     type="checkbox"
-                    checked={formData.showSessionCode}
+                    disabled={!formData.showFooter}
+                    checked={formData.showFooter && formData.showSessionCode}
                     onChange={(e) => setFormData({ ...formData, showSessionCode: e.target.checked })}
-                    className="w-5 h-5 accent-brand-blue rounded"
+                    className="w-5 h-5 accent-brand-blue rounded disabled:opacity-40"
                   />
-                  <span className="font-medium text-xs">Cetak Kode Sesi Ref</span>
+                  <span className={`font-medium text-xs ${!formData.showFooter ? 'text-gray-400' : ''}`}>Cetak Kode Sesi Ref</span>
                 </label>
               </div>
             </div>

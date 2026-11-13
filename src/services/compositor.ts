@@ -152,8 +152,12 @@ export async function composePhotoboxLayout(options: ComposeOptions): Promise<Co
   const printWidth = settings.rasterDotWidth || 576;
   const marginX = settings.marginHorizontal || 12;
   const photoSize = printWidth - marginX * 2; // Square 1:1
-  const headerHeight = settings.headerHeight || 75;
-  const footerHeight = settings.footerHeight || 75;
+
+  // Header height logic:
+  // If showHeader is false or headerHeight is 0, headerHeight is 0 (photo starts at top edge y=0, zero waste!)
+  const showHeader = settings.showHeader ?? true;
+  const headerHeight = showHeader ? (settings.headerHeight !== undefined ? settings.headerHeight : 40) : 0;
+  const footerHeight = settings.footerHeight !== undefined ? settings.footerHeight : 75;
   const totalHeight = headerHeight + photoSize + footerHeight;
 
   const canvas = document.createElement('canvas');
@@ -169,27 +173,35 @@ export async function composePhotoboxLayout(options: ComposeOptions): Promise<Co
   ctx.fillStyle = '#FFFFFF';
   ctx.fillRect(0, 0, printWidth, totalHeight);
 
-  // 2. Render HEADER (Compact with zero excess top margin)
-  ctx.fillStyle = '#141E30';
-  ctx.textAlign = 'center';
+  // 2. Render HEADER (Only if showHeader is true and headerHeight > 0)
+  if (showHeader && headerHeight > 0) {
+    ctx.fillStyle = '#141E30';
+    ctx.textAlign = 'center';
 
-  // Header Title
-  const headerText = settings.headerText || settings.appTitle || 'PHOTOBOX';
-  ctx.font = 'bold 26px "Inter", "Segoe UI", Arial, sans-serif';
-  ctx.fillText(headerText, printWidth / 2, headerHeight * 0.40);
+    const headerText = settings.headerText || settings.appTitle || 'PHOTOBOX';
 
-  // Header Subtitle / Decorative Divider
-  ctx.font = '500 14px "Inter", "Segoe UI", Arial, sans-serif';
-  ctx.fillStyle = '#475569';
-  ctx.fillText('★  SELF-SERVICE PHOTOBOX  ★', printWidth / 2, headerHeight * 0.72);
+    if (headerHeight < 55) {
+      // ULTRA COMPACT SINGLE-LINE TITLE (Saves ~1.5 - 2 cm of paper)
+      ctx.font = 'bold 22px "Inter", "Segoe UI", Arial, sans-serif';
+      ctx.fillText(headerText, printWidth / 2, headerHeight * 0.70);
+    } else {
+      // STANDARD FULL HEADER (Title + Subtitle + Thin rule)
+      ctx.font = 'bold 26px "Inter", "Segoe UI", Arial, sans-serif';
+      ctx.fillText(headerText, printWidth / 2, headerHeight * 0.40);
 
-  // Thin header rule
-  ctx.strokeStyle = '#141E30';
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.moveTo(marginX, headerHeight - 6);
-  ctx.lineTo(printWidth - marginX, headerHeight - 6);
-  ctx.stroke();
+      ctx.font = '500 14px "Inter", "Segoe UI", Arial, sans-serif';
+      ctx.fillStyle = '#475569';
+      ctx.fillText('★  SELF-SERVICE PHOTOBOX  ★', printWidth / 2, headerHeight * 0.72);
+
+      // Thin header rule
+      ctx.strokeStyle = '#141E30';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(marginX, headerHeight - 6);
+      ctx.lineTo(printWidth - marginX, headerHeight - 6);
+      ctx.stroke();
+    }
+  }
 
   // 3. Render SQUARE PHOTO (1:1)
   const photoY = headerHeight;

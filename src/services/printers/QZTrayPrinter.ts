@@ -294,15 +294,22 @@ export class QZTrayPrinter implements PrinterAdapter {
         ];
 
         if (settings.qzFeedAndCut) {
-          printData.push('\x1Bd\x02'); // Feed 2 lines before cutting
-          printData.push('\x1DV\x42\x00'); // GS V 66 0 (Cut paper)
+          // Only feed lines if feedLines is explicitly configured > 0 (prevents wasting blank paper)
+          if (settings.feedLines && settings.feedLines > 0) {
+            printData.push(`\x1Bd${String.fromCharCode(Math.min(settings.feedLines, 5))}`);
+          }
+          printData.push('\x1DV\x42\x00'); // GS V 66 0 (Cut paper cleanly at cutting position)
         }
       } else {
         // --- MODE B: PIXEL DRIVER MODE (NATIVE 80mm THERMAL COMPLIANT - ZERO TOP MARGIN) ---
         console.log(`[QZTrayPrinter] Mengirim pekerjaan via Windows Driver (Pixel) ke "${resolvedPrinter}"...`);
 
-        // Use scaleContent: false so driver does NOT center image on A4 page length (297mm)
+        const paperWidthMm = settings.windowsPaperWidthMm || 80;
+        const pageHeightMm = settings.windowsPageHeightMm || 120;
+
         config = qz.configs.create(resolvedPrinter, {
+          units: 'mm',
+          size: { width: paperWidthMm, height: pageHeightMm },
           margins: 0,
           scaleContent: false,
           rasterize: false,

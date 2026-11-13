@@ -9,6 +9,7 @@ function isMobilePlatform(): boolean {
 
 export const DEFAULT_SETTINGS: AdminSettings = {
   appTitle: 'PHOTOBOX',
+  showHeader: true,
   headerText: 'PHOTOBOX MEMORY',
   footerText: 'Capture Your Moment',
   showDate: true,
@@ -39,11 +40,11 @@ export const DEFAULT_SETTINGS: AdminSettings = {
   paperWidth: 80,
   rasterDotWidth: 576, // 72mm at 203 DPI = 576 dots
   marginHorizontal: 12,
-  headerHeight: 75,
+  headerHeight: 40, // compact 40px (~5mm) for minimal paper waste (0px if showHeader=false)
   footerHeight: 75,
   brightness: 1.05,
   contrast: 1.25,
-  feedLines: 3,
+  feedLines: 0, // 0 = cut immediately without feeding extra blank paper
   cutPaper: false,
 
   // Printer Bridge (Android Bluetooth)
@@ -99,6 +100,7 @@ export function loadSettings(): AdminSettings {
     return {
       ...DEFAULT_SETTINGS,
       ...parsed,
+      showHeader: parsed.showHeader !== undefined ? parsed.showHeader : true,
       printerMode: resolvedMode,
       // Ensure correct port 8181 for secure QZ Tray
       qzPort: parsed.qzPort === 8182 ? 8181 : (parsed.qzPort || 8181),

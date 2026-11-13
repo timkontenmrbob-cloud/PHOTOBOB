@@ -215,7 +215,7 @@ export const AdminSettingsScreen: React.FC<{ onClose: () => void }> = ({ onClose
     // Create a compact 576-dot test canvas pattern (72mm at 203 DPI) with zero top margin
     const canvas = document.createElement('canvas');
     canvas.width = formData.rasterDotWidth || 576;
-    canvas.height = 250;
+    canvas.height = 190;
     const ctx = canvas.getContext('2d');
     if (ctx) {
       ctx.fillStyle = '#FFFFFF';
@@ -223,35 +223,35 @@ export const AdminSettingsScreen: React.FC<{ onClose: () => void }> = ({ onClose
 
       ctx.fillStyle = '#141E30';
       ctx.textAlign = 'center';
-      ctx.font = 'bold 22px sans-serif';
-      ctx.fillText('=== TEST PRINT KALIBRASI ===', canvas.width / 2, 28);
+      ctx.font = 'bold 20px sans-serif';
+      ctx.fillText('=== TEST PRINT KALIBRASI ===', canvas.width / 2, 20);
 
-      ctx.font = 'normal 15px sans-serif';
+      ctx.font = 'normal 13px sans-serif';
       const targetPrinterName =
         formData.printerMode === 'windows-qz'
           ? `${formData.qzPrinterName || 'iWare IW D260UL'} (QZ Tray Auto)`
           : formData.printerMode === 'windows-usb'
           ? 'iWare IW D260UL (Windows USB)'
           : 'VSC TM-80D (Android Bluetooth)';
-      ctx.fillText(`Target: ${targetPrinterName}`, canvas.width / 2, 58);
-      ctx.fillText(`Lebar: ${canvas.width} dots (72 mm) • ${new Date().toLocaleTimeString('id-ID')}`, canvas.width / 2, 85);
+      ctx.fillText(`Target: ${targetPrinterName}`, canvas.width / 2, 44);
+      ctx.fillText(`Lebar: ${canvas.width} dots (72 mm) • ${new Date().toLocaleTimeString('id-ID')}`, canvas.width / 2, 66);
 
       // Calibration ruler test bar
-      ctx.fillRect(20, 105, canvas.width - 40, 6);
-      ctx.font = 'bold 13px sans-serif';
-      ctx.fillText('|<- 0 mm                       576 dots / 72 mm ->|', canvas.width / 2, 130);
+      ctx.fillRect(20, 80, canvas.width - 40, 5);
+      ctx.font = 'bold 12px sans-serif';
+      ctx.fillText('|<- 0 mm                       576 dots / 72 mm ->|', canvas.width / 2, 102);
 
       // Checkerboard calibration pattern
-      const size = 14;
+      const size = 12;
       for (let x = 20; x < canvas.width - 20; x += size) {
-        for (let y = 145; y < 185; y += size) {
+        for (let y = 115; y < 145; y += size) {
           if (((x / size) + (y / size)) % 2 === 0) {
             ctx.fillRect(x, y, size, size);
           }
         }
       }
 
-      ctx.font = 'bold 15px sans-serif';
+      ctx.font = 'bold 14px sans-serif';
       ctx.fillText(
         formData.printerMode === 'windows-qz'
           ? 'STATUS: QZ TRAY AUTO-PRINT OK'
@@ -259,7 +259,7 @@ export const AdminSettingsScreen: React.FC<{ onClose: () => void }> = ({ onClose
           ? 'STATUS: WINDOWS BROWSER PRINT OK'
           : 'STATUS: CLEANTER BLUETOOTH OK',
         canvas.width / 2,
-        220
+        170
       );
     }
 
@@ -1152,19 +1152,50 @@ export const AdminSettingsScreen: React.FC<{ onClose: () => void }> = ({ onClose
                   </select>
                 </div>
 
-                <div>
-                  <label className="block font-semibold text-brand-dark mb-1">
-                    Tinggi Header Struk: {formData.headerHeight} px
-                  </label>
+                <div className="p-3 bg-blue-50/60 rounded-xl border border-blue-200/70 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="block font-bold text-brand-dark text-xs sm:text-sm">
+                      Header Struk & Space Atas: {formData.showHeader ? `${formData.headerHeight} px` : 'Dinonaktifkan (0 px)'}
+                    </label>
+                    <label className="flex items-center gap-1.5 cursor-pointer text-xs font-bold text-brand-blue bg-white px-2 py-1 rounded-lg border border-blue-200 shadow-xs">
+                      <input
+                        type="checkbox"
+                        checked={formData.showHeader}
+                        onChange={(e) => setFormData({ ...formData, showHeader: e.target.checked })}
+                        className="w-4 h-4 accent-brand-blue rounded"
+                      />
+                      <span>Tampilkan Header</span>
+                    </label>
+                  </div>
+
                   <input
                     type="range"
-                    min="60"
-                    max="180"
+                    min="0"
+                    max="140"
                     step="5"
-                    value={formData.headerHeight}
+                    disabled={!formData.showHeader}
+                    value={formData.showHeader ? formData.headerHeight : 0}
                     onChange={(e) => setFormData({ ...formData, headerHeight: Number(e.target.value) })}
-                    className="w-full accent-brand-blue"
+                    className="w-full accent-brand-blue disabled:opacity-30"
                   />
+
+                  <div className="text-[11px] leading-relaxed">
+                    {!formData.showHeader || formData.headerHeight === 0 ? (
+                      <p className="text-green-700 font-semibold flex items-center gap-1">
+                        <span>🌱</span>
+                        <span><b>Mode Super Hemat Kertas:</b> Tanpa header. Foto langsung menempel di paling atas kertas (hemat ~2–3 cm kertas per cetakan).</span>
+                      </p>
+                    ) : formData.headerHeight < 55 ? (
+                      <p className="text-blue-700 font-medium flex items-center gap-1">
+                        <span>⚡</span>
+                        <span><b>Mode Kompak Hemat:</b> Hanya judul teks 1 baris tanpa subtitle, menghemat ~1.5 cm kertas.</span>
+                      </p>
+                    ) : (
+                      <p className="text-brand-muted">
+                        Header standar lengkap dengan judul, subtitle, dan garis pembatas.
+                      </p>
+                    )}
+                  </div>
                 </div>
 
                 <div>
@@ -1173,8 +1204,8 @@ export const AdminSettingsScreen: React.FC<{ onClose: () => void }> = ({ onClose
                   </label>
                   <input
                     type="range"
-                    min="60"
-                    max="180"
+                    min="40"
+                    max="160"
                     step="5"
                     value={formData.footerHeight}
                     onChange={(e) => setFormData({ ...formData, footerHeight: Number(e.target.value) })}
@@ -1238,12 +1269,15 @@ export const AdminSettingsScreen: React.FC<{ onClose: () => void }> = ({ onClose
                       <label className="block font-semibold mb-1">Garis Feed Spacing (Jarak Keluar)</label>
                       <input
                         type="number"
-                        min="1"
+                        min="0"
                         max="8"
                         value={formData.feedLines}
                         onChange={(e) => setFormData({ ...formData, feedLines: Number(e.target.value) })}
                         className="w-full h-10 px-3 rounded-lg border border-brand-border"
                       />
+                      <p className="text-[10px] text-brand-muted mt-0.5">
+                        0 = Langsung potong tanpa feed baris kosong (paling hemat kertas).
+                      </p>
                     </div>
                     <div>
                       <label className="block font-semibold mb-1">Margin Horizontal Kanvas (px)</label>
@@ -1418,13 +1452,31 @@ export const AdminSettingsScreen: React.FC<{ onClose: () => void }> = ({ onClose
               </div>
 
               <div>
-                <label className="block font-semibold text-brand-dark mb-1">Header Struk Foto (Atas)</label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block font-semibold text-brand-dark">Header Struk Foto (Atas)</label>
+                  <label className="flex items-center gap-1.5 cursor-pointer text-xs font-bold text-brand-blue">
+                    <input
+                      type="checkbox"
+                      checked={formData.showHeader}
+                      onChange={(e) => setFormData({ ...formData, showHeader: e.target.checked })}
+                      className="w-4 h-4 accent-brand-blue rounded"
+                    />
+                    <span>Aktifkan Header</span>
+                  </label>
+                </div>
                 <input
                   type="text"
+                  disabled={!formData.showHeader}
                   value={formData.headerText}
                   onChange={(e) => setFormData({ ...formData, headerText: e.target.value })}
-                  className="w-full h-12 px-3 rounded-xl border border-brand-border"
+                  placeholder="Contoh: PHOTOBOX"
+                  className="w-full h-12 px-3 rounded-xl border border-brand-border disabled:bg-gray-100 disabled:text-gray-400"
                 />
+                {!formData.showHeader && (
+                  <p className="text-[11px] text-green-700 font-semibold mt-1">
+                    ✓ Header nonaktif: Foto langsung dicetak di bagian paling atas kertas tanpa teks header (hemat space ~2–3 cm).
+                  </p>
+                )}
               </div>
 
               <div>

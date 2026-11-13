@@ -21,6 +21,7 @@ export interface FrameItem {
 
 export interface AdminSettings {
   appTitle: string;
+  showHeader: boolean; // default true, if false header is omitted and photo starts at top edge (0mm top space)
   headerText: string;
   footerText: string;
   showDate: boolean;

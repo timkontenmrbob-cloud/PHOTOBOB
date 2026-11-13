@@ -1323,19 +1323,47 @@ export const AdminSettingsScreen: React.FC<{ onClose: () => void }> = ({ onClose
                     </h4>
                   </div>
 
-                  <div className="p-3 bg-blue-50/80 rounded-xl border border-blue-200 text-xs text-brand-dark space-y-2 mb-3">
-                    <p className="font-bold text-blue-900 flex items-center gap-1.5">
-                      <span>🔒</span> Sertifikat Digital "PHOTOBOX KIOSK" Sudah Terpasang
+                  <div className="p-4 bg-amber-50/90 rounded-xl border border-amber-200 text-xs text-brand-dark space-y-3 mb-3">
+                    <p className="font-bold text-amber-900 flex items-center gap-1.5 text-sm">
+                      <span>⚠️</span> Kenapa Tombol "Allow" Mati Saat Centang "Remember"?
                     </p>
-                    <p className="text-blue-950">
-                      Sertifikat digital X.509 dan penandatangan otomatis RSA-SHA512 telah diintegrasikan langsung ke aplikasi browser ini.
+                    <p className="text-amber-950 leading-relaxed">
+                      QZ Tray di Windows memiliki proteksi keamanan: QZ Tray <b>menolak</b> tombol "Allow" jika opsi <i>Remember this decision</i> dicentang sebelum sertifikatnya didaftarkan ke <b>Site Manager</b> QZ Tray di laptop Anda.
                     </p>
-                    <div className="bg-white p-2.5 rounded-lg border border-blue-200 text-blue-900 font-medium">
-                      <p className="font-bold text-blue-800 mb-1">Cara Mengaktifkan Cetak 1-Klik Tanpa Dialog:</p>
-                      <ol className="list-decimal list-inside space-y-1 text-[11px]">
-                        <li>Saat dialog izin QZ Tray muncul di Windows, centang <b>"Remember this decision"</b> (sekarang tombol "Allow" tetap aktif & bisa diklik).</li>
-                        <li>Klik tombol <b>"Allow"</b>.</li>
-                        <li>Selesai! Izin tersimpan permanen di Windows dan dialog tidak akan pernah muncul lagi.</li>
+
+                    <div className="bg-white p-3 rounded-lg border border-amber-200 space-y-2">
+                      <p className="font-bold text-emerald-800">✅ 1. Solusi Cepat (Untuk Mencetak Sekarang):</p>
+                      <p className="text-gray-700">
+                        Saat pop-up QZ Tray muncul: <b>HAPUS CENTANG (UNCHECK)</b> pada <b>"Remember this decision"</b> (biarkan kotaknya kosong). Tombol <b>"Allow"</b> akan langsung berwarna biru/aktif dan bisa diklik untuk mencetak foto seketika!
+                      </p>
+                    </div>
+
+                    <div className="bg-white p-3 rounded-lg border border-blue-200 space-y-2">
+                      <p className="font-bold text-blue-800">🔒 2. Solusi Permanen (Bebas Pop-up Selamanya / Silent Print):</p>
+                      <p className="text-gray-700">
+                        Daftarkan sertifikat photobox ke QZ Tray sekali saja agar dialog izin tidak pernah muncul lagi:
+                      </p>
+                      <div className="flex flex-wrap gap-2 my-2">
+                        <a
+                          href="/digital-certificate.txt"
+                          download="digital-certificate.txt"
+                          className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold flex items-center gap-1.5 shadow-sm text-xs"
+                        >
+                          📥 Download Sertifikat (digital-certificate.txt)
+                        </a>
+                        <a
+                          href="/install-qz-cert.bat"
+                          download="install-qz-cert.bat"
+                          className="px-3 py-1.5 bg-gray-700 hover:bg-gray-800 text-white rounded-lg font-semibold flex items-center gap-1.5 shadow-sm text-xs"
+                        >
+                          ⚡ Download Pasang Otomatis (.bat)
+                        </a>
+                      </div>
+                      <ol className="list-decimal list-inside space-y-1 text-gray-700">
+                        <li>Unduh file sertifikat di atas.</li>
+                        <li>Di pojok kanan bawah Windows (dekat jam), klik kanan ikon hijau <b>QZ Tray</b> ➔ <b>Advanced</b> ➔ <b>Site Manager...</b></li>
+                        <li><b>Drag & drop (tarik & lepas)</b> file <code>digital-certificate.txt</code> ke dalam jendela Site Manager tersebut (atau jalankan file <code>install-qz-cert.bat</code> sebagai Administrator).</li>
+                        <li>Selesai! Sertifikat langsung terdaftar sebagai <b>Allowed</b> dan dialog izin tidak akan pernah muncul lagi.</li>
                       </ol>
                     </div>
                   </div>

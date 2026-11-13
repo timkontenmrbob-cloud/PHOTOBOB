@@ -185,9 +185,10 @@ export const AdminSettingsScreen: React.FC<{ onClose: () => void }> = ({ onClose
 
   useEffect(() => {
     checkCameraAndPwa();
-    checkPrinterHealth();
     if (formData.printerMode === 'windows-qz') {
       fetchQZPrinters();
+    } else {
+      checkPrinterHealth();
     }
   }, [formData.printerMode]);
 
@@ -278,24 +279,37 @@ export const AdminSettingsScreen: React.FC<{ onClose: () => void }> = ({ onClose
       `[AdminSettingsScreen] Menjalankan Test Print. Mode: "${activeTestSettings.printerMode}", Target: "${activeTestSettings.qzPrinterName}"`
     );
 
-    const res = await printerService.printPhotobox({
-      base64Image: testBase64,
-      previewUrl: testDataUrl,
-      sessionRef: `TEST-${Date.now().toString(36).toUpperCase()}`,
-      settings: activeTestSettings,
-    });
+    try {
+      setTestPrintMessage(
+        formData.printerMode === 'windows-qz'
+          ? 'Mengirim ke QZ Tray... (Periksa apakah ada pop-up konfirmasi di Windows)'
+          : 'Menyiapkan proses cetak...'
+      );
 
-    setIsTestPrinting(false);
-    if (res.success) {
-      if (formData.printerMode === 'windows-qz') {
-        setTestPrintMessage(`✅ Test print berhasil terkirim langsung ke "${formData.qzPrinterName || 'iWare'}" via QZ Tray tanpa dialog!`);
-      } else if (formData.printerMode === 'windows-usb') {
-        setTestPrintMessage('✅ Dialog cetak Windows browser berhasil dibuka untuk printer iWare!');
+      const res = await printerService.printPhotobox({
+        base64Image: testBase64,
+        previewUrl: testDataUrl,
+        sessionRef: `TEST-${Date.now().toString(36).toUpperCase()}`,
+        settings: activeTestSettings,
+      });
+
+      if (res.success) {
+        if (formData.printerMode === 'windows-qz') {
+          setTestPrintMessage(`✅ Test print berhasil terkirim ke "${formData.qzPrinterName || 'iWare'}" via QZ Tray tanpa dialog!`);
+        } else if (formData.printerMode === 'windows-usb') {
+          setTestPrintMessage('✅ Dialog cetak Windows browser berhasil dibuka untuk printer iWare!');
+        } else {
+          setTestPrintMessage('✅ Test print berhasil terkirim ke printer via Cleanter!');
+        }
       } else {
-        setTestPrintMessage('✅ Test print berhasil terkirim ke printer via Cleanter!');
+        const detail = res.errorFix ? ` (${res.errorFix})` : '';
+        setTestPrintMessage(`❌ Test print gagal: ${res.errorMessage}${detail}`);
       }
-    } else {
-      setTestPrintMessage(`❌ Test print gagal: ${res.errorMessage}`);
+    } catch (err: unknown) {
+      const msg = (err as Error)?.message || String(err);
+      setTestPrintMessage(`❌ Kendala saat mengirim ke printer: ${msg}`);
+    } finally {
+      setIsTestPrinting(false);
     }
   };
 
@@ -625,18 +639,36 @@ export const AdminSettingsScreen: React.FC<{ onClose: () => void }> = ({ onClose
                   </div>
 
                   {/* Quick Setup Checklist */}
-                  <div className="p-3 bg-blue-50/70 rounded-xl border border-blue-200 text-xs text-brand-dark space-y-1.5">
+                  <div className="p-3.5 bg-blue-50/70 rounded-xl border border-blue-200 text-xs text-brand-dark space-y-2">
                     <p className="font-bold text-brand-blue flex items-center gap-1.5">
                       <Command className="w-4 h-4" />
-                      <span>Langkah Cepat Setup 1-Klik Cetak di Windows:</span>
+                      <span>Petunjuk Penting 1-Klik Cetak QZ Tray di Windows:</span>
                     </p>
-                    <p>1. Buka software <b>QZ Tray</b> di laptop (pastikan ikon hijau muncul di taskbar dekat jam).</p>
-                    <p>2. Sambungkan kabel USB printer <b>iWare IW D260UL</b> ke laptop dan nyalakan.</p>
-                    <p>3. Klik tombol <b>"Muat Ulang Printer"</b> di atas, lalu pilih nama printer iWare Anda.</p>
-                    <p>4. Klik <b>"TEST PRINT (QZ TRAY)"</b> di bawah untuk mencoba cetak struk tanpa dialog browser!</p>
-                    <p className="text-[11px] text-brand-muted pt-1">
-                      💡 <i>Tips Bebas Pop-up:</i> Saat pertama kali dialog otorisasi QZ Tray muncul di Windows, centang <b>"Remember this decision"</b> lalu klik <b>"Allow"</b> agar seterusnya cetak otomatis senyap!
-                    </p>
+                    <p>1. Pastikan software <b>QZ Tray</b> berjalan di Windows (ikon hijau di taskbar dekat jam).</p>
+                    <p>2. Sambungkan kabel USB printer <b>iWare IW D260UL</b> dan nyalakan printer.</p>
+                    <p>3. Klik <b>"Muat Ulang Printer"</b> di atas, lalu pilih nama printer iWare Anda.</p>
+                    <p>4. Klik <b>"TEST PRINT (QZ TRAY)"</b> di bawah untuk menguji cetak struk otomatis.</p>
+
+                    <div className="p-2.5 bg-amber-50 rounded-lg border border-amber-200 text-[11px] text-amber-900 space-y-1 mt-2">
+                      <p className="font-bold flex items-center gap-1">
+                        <span>⚠️ JIKA STATUS HANYA "MENGIRIM..." ATAU TERPUTUS:</span>
+                      </p>
+                      <p>
+                        • <b>Pop-up Izin Windows:</b> Periksa taskbar Windows Anda. Jika muncul jendela pop-up otorisasi dari QZ Tray bertuliskan <i>"A website is requesting access..."</i>, centang <b>"Remember this decision"</b> lalu klik <b>"Allow"</b>.
+                      </p>
+                      <p>
+                        • <b>Izin HTTPS / SSL Port 8181:</b> Jika membuka dari link Vercel, buka tab baru ke{' '}
+                        <a
+                          href="https://localhost:8181"
+                          target="_blank"
+                          rel="noreferrer"
+                          className="font-bold text-brand-blue underline hover:text-blue-700"
+                        >
+                          https://localhost:8181 (Klik di sini)
+                        </a>
+                        , lalu klik <i>Advanced ➔ Proceed to localhost (unsafe)</i> agar Chrome mengizinkan koneksi WSS terenkripsi lokal.
+                      </p>
+                    </div>
                   </div>
                 </div>
 

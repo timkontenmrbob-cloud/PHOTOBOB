@@ -67,6 +67,8 @@ function applyBrightnessContrast(
   const b = (brightness - 1.0) * 255;
 
   for (let i = 0; i < data.length; i += 4) {
+    // Keep blank paper white when lowering contrast, avoiding ink in the margins.
+    if (data[i] === 255 && data[i + 1] === 255 && data[i + 2] === 255) continue;
     // Red
     let r = (data[i] - 128) * c + 128 + b;
     // Green
@@ -291,11 +293,10 @@ export async function composePhotoboxLayout(options: ComposeOptions): Promise<Co
     }
   }
 
-  // Keep the visitor preview smooth and neutral. Calibration only affects the print copy.
+  // Preview and print share the same grayscale and tonal adjustments.
   applyGrayscale(ctx, printWidth, totalHeight);
-  const previewDataUrl = canvas.toDataURL('image/png');
 
-  // 6. Apply brightness and contrast to the print copy before one-bit conversion.
+  // 6. Apply calibration before exporting either preview or print.
   if (settings.brightness !== 1.0 || settings.contrast !== 1.0) {
     applyBrightnessContrast(
       ctx,
@@ -306,7 +307,10 @@ export async function composePhotoboxLayout(options: ComposeOptions): Promise<Co
     );
   }
 
-  // Prepare one-bit thermal output; never use this as the standard photo preview.
+  // Keep the on-screen B&W smooth while matching the calibrated print tones.
+  const previewDataUrl = canvas.toDataURL('image/png');
+
+  // The thermal printer requires one-bit output to represent those tones as dots.
   const thermalPreviewUrl = createThermalDitherSimulation(canvas);
 
   // Export raw base64 PNG from the dithered image for Cleanter & QZ Tray

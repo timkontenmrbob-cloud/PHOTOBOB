@@ -271,7 +271,7 @@ export const PhotoboxProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         setSession((prev) => ({
           ...prev,
           composedPrintBase64: result.cleanterBase64,
-          composedPreviewUrl: result.previewUrl, // Smooth, neutral black-and-white preview
+          composedPreviewUrl: result.previewUrl, // Smooth black-and-white preview with the same print calibration
           hasPrinted: false,
         }));
       } catch (err) {

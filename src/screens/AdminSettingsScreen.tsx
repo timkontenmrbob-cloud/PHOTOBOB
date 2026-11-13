@@ -1279,8 +1279,18 @@ export const AdminSettingsScreen: React.FC<{ onClose: () => void }> = ({ onClose
                 </div>
 
                 <p className="text-xs text-brand-muted">
-                  Preview memakai B&amp;W natural. Pengaturan berikut hanya untuk cetak thermal.
-                  Mulai dari kecerahan 1,15 dan kontras 1,00. Naikkan kecerahan bertahap jika cetakan masih gelap.
+                  Preview dan cetakan memakai pengaturan B&amp;W yang sama. Hasil fisik tetap perlu diuji.
+                  Naikkan kecerahan untuk hasil lebih terang. Turunkan kontras di bawah 1,00 untuk bayangan lebih lembut.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setFormData((prev) => ({ ...prev, brightness: 1.2, contrast: 0.8 }))}
+                  className="w-full rounded-xl border border-brand-border px-3 py-2 text-sm font-semibold text-brand-blue hover:bg-brand-blue-light transition-colors"
+                >
+                  Cetak Lebih Lembut (Terang 1,20 · Kontras 0,80)
+                </button>
+                <p className="text-xs text-brand-muted">
+                  Setelah memilih, klik Simpan Pengaturan lalu ambil foto baru untuk uji cetak.
                 </p>
                 <div>
                   <label className="block font-semibold text-brand-dark mb-1">
@@ -1303,7 +1313,7 @@ export const AdminSettingsScreen: React.FC<{ onClose: () => void }> = ({ onClose
                   </label>
                   <input
                     type="range"
-                    min="1.0"
+                    min="0.6"
                     max="1.8"
                     step="0.05"
                     value={formData.contrast}

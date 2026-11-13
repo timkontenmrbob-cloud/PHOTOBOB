@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="128" fill="#1769E0"/>
+  <!-- Camera Body -->
+  <path d="M120 180 C120 160, 136 144, 156 144 L180 144 L196 116 C204 104, 218 96, 232 96 L280 96 C294 96, 308 104, 316 116 L332 144 L356 144 C376 144, 392 160, 392 180 L392 340 C392 360, 376 376, 356 376 L156 376 C136 376, 120 360, 120 340 Z" fill="#FFFFFF"/>
+  <!-- Camera Lens Outer -->
+  <circle cx="256" cy="260" r="76" fill="#1769E0"/>
+  <!-- Camera Lens Inner -->
+  <circle cx="256" cy="260" r="48" fill="#FFFFFF"/>
+  <circle cx="272" cy="244" r="14" fill="#1769E0"/>
+  <!-- Flash Dot -->
+  <circle cx="348" cy="184" r="14" fill="#1769E0"/>
+</svg>

@@ -330,92 +330,95 @@ export const AdminSettingsScreen: React.FC<{ onClose: () => void }> = ({ onClose
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-white overflow-y-auto flex flex-col text-brand-dark">
-      {/* Top Header */}
-      <header className="sticky top-0 bg-white border-b border-brand-border px-6 py-4 flex items-center justify-between z-10">
-        <div>
-          <h1 className="text-xl font-black text-brand-blue flex items-center gap-2">
-            <Sliders className="w-6 h-6" />
-            <span>Pengaturan Kiosk Admin</span>
-          </h1>
-          <p className="text-xs text-brand-muted">
-            Mode Aktif:{' '}
-            <span className="font-semibold text-brand-dark">
-              {formData.printerMode === 'windows-qz'
-                ? 'Windows — Automatic Printing (QZ Tray / iWare)'
-                : formData.printerMode === 'windows-usb'
-                ? 'Windows USB — Browser Print (iWare)'
-                : 'Android Bluetooth — Event (VSC TM-80D)'}
-            </span>
-          </p>
+    <div className="fixed inset-0 z-50 bg-white flex flex-col text-brand-dark overflow-hidden">
+      {/* Top Header & Navigation Tabs (Pinned at top) */}
+      <header className="shrink-0 bg-white border-b border-brand-border z-20 shadow-sm">
+        <div className="px-6 py-4 flex items-center justify-between">
+          <div>
+            <h1 className="text-xl font-black text-brand-blue flex items-center gap-2">
+              <Sliders className="w-6 h-6" />
+              <span>Pengaturan Kiosk Admin</span>
+            </h1>
+            <p className="text-xs text-brand-muted">
+              Mode Aktif:{' '}
+              <span className="font-semibold text-brand-dark">
+                {formData.printerMode === 'windows-qz'
+                  ? 'Windows — Automatic Printing (QZ Tray / iWare)'
+                  : formData.printerMode === 'windows-usb'
+                  ? 'Windows USB — Browser Print (iWare)'
+                  : 'Android Bluetooth — Event (VSC TM-80D)'}
+              </span>
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            className="h-10 px-4 bg-brand-blue-light text-brand-blue font-semibold rounded-xl flex items-center gap-2 hover:bg-blue-100 transition-colors"
+          >
+            <X className="w-5 h-5" />
+            <span>Tutup</span>
+          </button>
         </div>
-        <button
-          onClick={onClose}
-          className="h-10 px-4 bg-brand-blue-light text-brand-blue font-semibold rounded-xl flex items-center gap-2 hover:bg-blue-100 transition-colors"
-        >
-          <X className="w-5 h-5" />
-          <span>Tutup</span>
-        </button>
+
+        {/* Tabs Bar */}
+        <div className="bg-gray-50 border-t border-brand-border px-6 flex gap-2 overflow-x-auto py-2.5 shrink-0">
+          <button
+            onClick={() => setActiveTab('status')}
+            className={`px-4 py-2.5 rounded-xl font-bold text-sm whitespace-nowrap transition-colors flex items-center gap-2 shrink-0 ${
+              activeTab === 'status'
+                ? 'bg-brand-blue text-white shadow-sm'
+                : 'text-brand-muted hover:bg-gray-200'
+            }`}
+          >
+            <Wifi className="w-4 h-4" />
+            <span>Status & Mode</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('frames')}
+            className={`px-4 py-2.5 rounded-xl font-bold text-sm whitespace-nowrap transition-colors flex items-center gap-2 shrink-0 ${
+              activeTab === 'frames'
+                ? 'bg-brand-blue text-white shadow-sm'
+                : 'text-brand-muted hover:bg-gray-200'
+            }`}
+          >
+            <ImageIcon className="w-4 h-4" />
+            <span>Manajemen Bingkai</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('print')}
+            className={`px-4 py-2.5 rounded-xl font-bold text-sm whitespace-nowrap transition-colors flex items-center gap-2 shrink-0 ${
+              activeTab === 'print'
+                ? 'bg-brand-blue text-white shadow-sm'
+                : 'text-brand-muted hover:bg-gray-200'
+            }`}
+          >
+            <Printer className="w-4 h-4" />
+            <span>Pengaturan Cetak</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('brand')}
+            className={`px-4 py-2.5 rounded-xl font-bold text-sm whitespace-nowrap transition-colors flex items-center gap-2 shrink-0 ${
+              activeTab === 'brand'
+                ? 'bg-brand-blue text-white shadow-sm'
+                : 'text-brand-muted hover:bg-gray-200'
+            }`}
+          >
+            <ShieldCheck className="w-4 h-4" />
+            <span>Branding & Kiosk</span>
+          </button>
+        </div>
+
+        {/* Save Success Banner */}
+        {saveSuccessNotice && (
+          <div className="bg-green-50 border-t border-green-200 px-6 py-2.5 flex items-center gap-2 text-green-700 text-sm font-semibold animate-fadeIn">
+            <CheckCircle2 className="w-5 h-5 text-green-600" />
+            <span>Pengaturan berhasil disimpan!</span>
+          </div>
+        )}
       </header>
 
-      {/* Tabs */}
-      <div className="bg-gray-50 border-b border-brand-border px-6 flex gap-2 overflow-x-auto py-2">
-        <button
-          onClick={() => setActiveTab('status')}
-          className={`px-4 py-2.5 rounded-xl font-bold text-sm whitespace-nowrap transition-colors flex items-center gap-2 ${
-            activeTab === 'status'
-              ? 'bg-brand-blue text-white shadow-sm'
-              : 'text-brand-muted hover:bg-gray-200'
-          }`}
-        >
-          <Wifi className="w-4 h-4" />
-          <span>Status & Mode</span>
-        </button>
-        <button
-          onClick={() => setActiveTab('frames')}
-          className={`px-4 py-2.5 rounded-xl font-bold text-sm whitespace-nowrap transition-colors flex items-center gap-2 ${
-            activeTab === 'frames'
-              ? 'bg-brand-blue text-white shadow-sm'
-              : 'text-brand-muted hover:bg-gray-200'
-          }`}
-        >
-          <ImageIcon className="w-4 h-4" />
-          <span>Manajemen Bingkai</span>
-        </button>
-        <button
-          onClick={() => setActiveTab('print')}
-          className={`px-4 py-2.5 rounded-xl font-bold text-sm whitespace-nowrap transition-colors flex items-center gap-2 ${
-            activeTab === 'print'
-              ? 'bg-brand-blue text-white shadow-sm'
-              : 'text-brand-muted hover:bg-gray-200'
-          }`}
-        >
-          <Printer className="w-4 h-4" />
-          <span>Pengaturan Cetak</span>
-        </button>
-        <button
-          onClick={() => setActiveTab('brand')}
-          className={`px-4 py-2.5 rounded-xl font-bold text-sm whitespace-nowrap transition-colors flex items-center gap-2 ${
-            activeTab === 'brand'
-              ? 'bg-brand-blue text-white shadow-sm'
-              : 'text-brand-muted hover:bg-gray-200'
-          }`}
-        >
-          <ShieldCheck className="w-4 h-4" />
-          <span>Branding & Kiosk</span>
-        </button>
-      </div>
-
-      {/* Save Success Banner */}
-      {saveSuccessNotice && (
-        <div className="bg-green-50 border-b border-green-200 px-6 py-2.5 flex items-center gap-2 text-green-700 text-sm font-semibold animate-fadeIn">
-          <CheckCircle2 className="w-5 h-5 text-green-600" />
-          <span>Pengaturan berhasil disimpan!</span>
-        </div>
-      )}
-
-      {/* Main Content Area */}
-      <main className="flex-1 p-6 max-w-2xl mx-auto w-full space-y-6">
+      {/* Main Content Area (Scrollable) */}
+      <div className="flex-1 overflow-y-auto">
+        <main className="p-6 max-w-2xl mx-auto w-full space-y-6 pb-8">
         {/* PRINTING MODE SELECTOR CARD (Prominently displayed) */}
         <div className="bg-brand-blue-light/50 border-2 border-brand-blue/30 rounded-2xl p-5 space-y-3">
           <div className="flex items-center justify-between">
@@ -1519,25 +1522,28 @@ export const AdminSettingsScreen: React.FC<{ onClose: () => void }> = ({ onClose
           </div>
         )}
       </main>
+      </div>
 
-      {/* Sticky Bottom Actions */}
-      <footer className="sticky bottom-0 bg-white border-t border-brand-border p-4 px-6 flex items-center justify-between z-10 max-w-2xl mx-auto w-full gap-4">
-        <button
-          onClick={handleResetDefaults}
-          className="px-4 py-3 bg-gray-100 hover:bg-gray-200 text-brand-muted font-bold text-sm rounded-xl flex items-center gap-2"
-        >
-          <RotateCcw className="w-4 h-4" />
-          <span>Reset Default</span>
-        </button>
-
-        <div className="flex items-center gap-3">
+      {/* Bottom Actions Bar (Pinned at bottom) */}
+      <footer className="shrink-0 bg-white border-t border-brand-border p-4 px-6 z-10 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+        <div className="max-w-2xl mx-auto w-full flex items-center justify-between gap-4">
           <button
-            onClick={handleSave}
-            className="px-6 py-3.5 bg-brand-blue hover:bg-brand-blue-hover text-white font-bold text-base rounded-xl flex items-center gap-2 shadow-sm"
+            onClick={handleResetDefaults}
+            className="px-4 py-3 bg-gray-100 hover:bg-gray-200 text-brand-muted font-bold text-sm rounded-xl flex items-center gap-2"
           >
-            <Save className="w-5 h-5" />
-            <span>Simpan Pengaturan</span>
+            <RotateCcw className="w-4 h-4" />
+            <span>Reset Default</span>
           </button>
+
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleSave}
+              className="px-6 py-3.5 bg-brand-blue hover:bg-brand-blue-hover text-white font-bold text-base rounded-xl flex items-center gap-2 shadow-sm"
+            >
+              <Save className="w-5 h-5" />
+              <span>Simpan Pengaturan</span>
+            </button>
+          </div>
         </div>
       </footer>
     </div>

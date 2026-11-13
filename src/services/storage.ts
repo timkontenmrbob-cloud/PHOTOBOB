@@ -39,7 +39,7 @@ export const DEFAULT_SETTINGS: AdminSettings = {
   // Thermal Print Calibration (Raster & Canvas)
   paperWidth: 80,
   rasterDotWidth: 576, // 72mm at 203 DPI = 576 dots
-  marginHorizontal: 12,
+  marginHorizontal: 24, // 24 dots (~3mm margin for clean centered photo)
   headerHeight: 40, // compact 40px (~5mm) for minimal paper waste (0px if showHeader=false)
   footerHeight: 75,
   brightness: 1.05,

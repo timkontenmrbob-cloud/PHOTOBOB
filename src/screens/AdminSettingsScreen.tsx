@@ -1139,17 +1139,51 @@ export const AdminSettingsScreen: React.FC<{ onClose: () => void }> = ({ onClose
                 )}
 
                 <div>
-                  <label className="block font-semibold text-brand-dark mb-1">Lebar Raster Titik (Dots / Px)</label>
+                  <label className="block font-semibold text-brand-dark mb-1">
+                    Lebar Raster Titik (Dots / Px) — Resolusi Head Printer
+                  </label>
                   <select
                     value={formData.rasterDotWidth}
                     onChange={(e) => setFormData({ ...formData, rasterDotWidth: Number(e.target.value) })}
                     className="w-full h-12 px-3 rounded-xl border border-brand-border font-medium bg-white"
                   >
-                    <option value={576}>576 dots (Standar iWare & VSC 72mm)</option>
-                    <option value={512}>512 dots</option>
-                    <option value={640}>640 dots</option>
-                    <option value={384}>384 dots (58mm)</option>
+                    <option value={576}>576 dots — STANDAR PAS iWare 80mm (72mm Area Cetak - Rekomendasi)</option>
+                    <option value={512}>512 dots — Lebar Kompak</option>
+                    <option value={384}>384 dots — Khusus Kertas Mini 58mm</option>
                   </select>
+                  <p className="text-[11px] text-brand-muted mt-1">
+                    💡 Gunakan <b>576 dots</b> untuk printer iWare 80mm agar foto pas di tengah dan tidak terpotong memanjang ke bawah.
+                  </p>
+                </div>
+
+                {/* Tombol Kalibrasi Cepat 1-Klik */}
+                <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                  <div>
+                    <p className="font-bold text-xs text-amber-900">Perbaiki Ukuran Otomatis (Fit di Tengah)</p>
+                    <p className="text-[11px] text-amber-800">
+                      Mengembalikan ukuran foto agar presisi di tengah kertas 80mm dan tidak melebar/memanjang ke bawah.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFormData({
+                        ...formData,
+                        rasterDotWidth: 576,
+                        marginHorizontal: 24,
+                        windowsPaperWidthMm: 80,
+                        windowsPrintableWidthMm: 72,
+                        windowsPageHeightMm: 140,
+                        windowsMarginMm: 0,
+                        headerHeight: 40,
+                        footerHeight: 70,
+                      });
+                      alert('Ukuran berhasil dikalibrasi ke standar pas 80mm! Klik "Simpan Pengaturan" di bawah.');
+                    }}
+                    className="shrink-0 px-3 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-bold text-xs shadow-xs"
+                  >
+                    ⚡ Kalibrasi Pas 80mm
+                  </button>
                 </div>
 
                 <div className="p-3 bg-blue-50/60 rounded-xl border border-blue-200/70 space-y-2">
@@ -1280,13 +1314,18 @@ export const AdminSettingsScreen: React.FC<{ onClose: () => void }> = ({ onClose
                       </p>
                     </div>
                     <div>
-                      <label className="block font-semibold mb-1">Margin Horizontal Kanvas (px)</label>
+                      <label className="block font-semibold mb-1">Margin Samping Foto (px)</label>
                       <input
                         type="number"
+                        min="16"
+                        max="64"
                         value={formData.marginHorizontal}
                         onChange={(e) => setFormData({ ...formData, marginHorizontal: Number(e.target.value) })}
                         className="w-full h-10 px-3 rounded-lg border border-brand-border"
                       />
+                      <p className="text-[10px] text-brand-muted mt-0.5">
+                        Rekomendasi 24 px: Memberikan batas tepi bersih dan menjaga foto presisi di tengah kertas.
+                      </p>
                     </div>
                     <div>
                       <label className="block font-semibold mb-1">Auto Cut Paper</label>

@@ -149,15 +149,20 @@ export async function composePhotoboxLayout(options: ComposeOptions): Promise<Co
   URL.revokeObjectURL(photoUrl);
 
   // Print dimensions based on settings
-  const printWidth = settings.rasterDotWidth || 576;
-  const marginX = settings.marginHorizontal || 12;
+  // Protect against overly wide values (> 576 dots for 80mm thermal roll causes line wrapping/split parts)
+  const rawWidth = settings.rasterDotWidth || 576;
+  const printWidth = Math.min(576, Math.max(384, Math.floor(rawWidth / 8) * 8));
+
+  // Margin horizontal: default 24 dots (~3mm) so photo is neatly centered and does not bleed off edges
+  const marginX = Math.max(16, settings.marginHorizontal ?? 24);
   const photoSize = printWidth - marginX * 2; // Square 1:1
+  const photoX = Math.round((printWidth - photoSize) / 2); // Perfectly centered horizontally
 
   // Header height logic:
   // If showHeader is false or headerHeight is 0, headerHeight is 0 (photo starts at top edge y=0, zero waste!)
   const showHeader = settings.showHeader ?? true;
   const headerHeight = showHeader ? (settings.headerHeight !== undefined ? settings.headerHeight : 40) : 0;
-  const footerHeight = settings.footerHeight !== undefined ? settings.footerHeight : 75;
+  const footerHeight = settings.footerHeight !== undefined ? settings.footerHeight : 70;
   const totalHeight = headerHeight + photoSize + footerHeight;
 
   const canvas = document.createElement('canvas');
@@ -193,32 +198,39 @@ export async function composePhotoboxLayout(options: ComposeOptions): Promise<Co
       ctx.fillStyle = '#475569';
       ctx.fillText('★  SELF-SERVICE PHOTOBOX  ★', printWidth / 2, headerHeight * 0.72);
 
-      // Thin header rule
+      // Thin header rule centered with the photo
       ctx.strokeStyle = '#141E30';
       ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.moveTo(marginX, headerHeight - 6);
-      ctx.lineTo(printWidth - marginX, headerHeight - 6);
+      ctx.moveTo(photoX, headerHeight - 6);
+      ctx.lineTo(photoX + photoSize, headerHeight - 6);
       ctx.stroke();
     }
   }
 
-  // 3. Render SQUARE PHOTO (1:1)
+  // 3. Render SQUARE PHOTO (1:1) - Strictly center-cropped so it never stretches or widens
   const photoY = headerHeight;
-  ctx.drawImage(photoImg, marginX, photoY, photoSize, photoSize);
+  const pW = photoImg.naturalWidth || photoImg.width;
+  const pH = photoImg.naturalHeight || photoImg.height;
+  const pMin = Math.min(pW, pH);
+  const pX = Math.round((pW - pMin) / 2);
+  const pY = Math.round((pH - pMin) / 2);
+  ctx.drawImage(photoImg, pX, pY, pMin, pMin, photoX, photoY, photoSize, photoSize);
 
-  // 4. Render FRAME OVERLAY (1:1)
-  ctx.drawImage(frameImg, marginX, photoY, photoSize, photoSize);
+  // 4. Render FRAME OVERLAY (1:1) - Aligned exactly over the centered photo
+  const fW = frameImg.naturalWidth || frameImg.width;
+  const fH = frameImg.naturalHeight || frameImg.height;
+  ctx.drawImage(frameImg, 0, 0, fW, fH, photoX, photoY, photoSize, photoSize);
 
   // 5. Render FOOTER (Compact)
   const footerY = headerHeight + photoSize;
 
-  // Thin footer rule
+  // Thin footer rule centered with the photo
   ctx.strokeStyle = '#141E30';
   ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.moveTo(marginX, footerY + 8);
-  ctx.lineTo(printWidth - marginX, footerY + 8);
+  ctx.moveTo(photoX, footerY + 8);
+  ctx.lineTo(photoX + photoSize, footerY + 8);
   ctx.stroke();
 
   // Footer Main Text

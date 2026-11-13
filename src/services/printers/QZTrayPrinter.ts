@@ -288,9 +288,10 @@ export class QZTrayPrinter implements PrinterAdapter {
             data: cleanBase64,
             options: {
               language: 'ESCPOS',
-              dotDensity: 'double',
+              dotDensity: 'single', // Standard 1:1 density prevents horizontal stretching and banding gaps
             },
           },
+          '\x1B\x61\x00', // ESC a 0 (Reset to normal left alignment)
         ];
 
         if (settings.qzFeedAndCut) {
@@ -301,18 +302,18 @@ export class QZTrayPrinter implements PrinterAdapter {
           printData.push('\x1DV\x42\x00'); // GS V 66 0 (Cut paper cleanly at cutting position)
         }
       } else {
-        // --- MODE B: PIXEL DRIVER MODE (NATIVE 80mm THERMAL COMPLIANT - ZERO TOP MARGIN) ---
+        // --- MODE B: PIXEL DRIVER MODE (NATIVE 80mm THERMAL COMPLIANT - AUTO FIT & CENTER) ---
         console.log(`[QZTrayPrinter] Mengirim pekerjaan via Windows Driver (Pixel) ke "${resolvedPrinter}"...`);
 
         const paperWidthMm = settings.windowsPaperWidthMm || 80;
-        const pageHeightMm = settings.windowsPageHeightMm || 120;
 
         config = qz.configs.create(resolvedPrinter, {
           units: 'mm',
-          size: { width: paperWidthMm, height: pageHeightMm },
+          size: { width: paperWidthMm }, // Match paper width without forcing rigid page breaks
           margins: 0,
-          scaleContent: false,
-          rasterize: false,
+          scaleContent: true, // Must be true so 576px canvas scales to fit 80mm roll without tiling into several parts
+          rasterize: true,
+          density: 203, // 203 DPI standard for thermal receipt printers
           jobName: `PHOTOBOX_${sessionRef}`,
         });
 

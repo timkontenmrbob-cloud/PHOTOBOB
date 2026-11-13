@@ -67,8 +67,6 @@ export class WindowsBrowserPrinter implements PrinterAdapter {
       // 2. Inject or update dynamic @media print styles sized for 80mm roll
       const paperWidthMm = settings.windowsPaperWidthMm || 80;
       const printableWidthMm = settings.windowsPrintableWidthMm || 72;
-      const pageHeightMm = settings.windowsPageHeightMm || 120;
-      const marginMm = settings.windowsMarginMm || 0;
 
       let styleEl = document.getElementById('photobox-print-dynamic-styles') as HTMLStyleElement | null;
       if (!styleEl) {
@@ -81,8 +79,8 @@ export class WindowsBrowserPrinter implements PrinterAdapter {
       styleEl.textContent = `
         @media print {
           @page {
-            size: ${paperWidthMm}mm ${pageHeightMm}mm;
-            margin: ${marginMm}mm;
+            size: ${paperWidthMm}mm auto;
+            margin: 0;
           }
           html, body {
             margin: 0 !important;
@@ -102,7 +100,7 @@ export class WindowsBrowserPrinter implements PrinterAdapter {
             width: ${paperWidthMm}mm !important;
             max-width: ${paperWidthMm}mm !important;
             margin: 0 auto !important;
-            padding: ${marginMm}mm !important;
+            padding: 0 !important;
             box-sizing: border-box !important;
             page-break-after: avoid !important;
             page-break-before: avoid !important;
@@ -113,6 +111,8 @@ export class WindowsBrowserPrinter implements PrinterAdapter {
             max-width: ${printableWidthMm}mm !important;
             margin: 0 auto !important;
             text-align: center !important;
+            display: flex !important;
+            justify-content: center !important;
             page-break-inside: avoid !important;
           }
           #photobox-print-image {
@@ -121,6 +121,7 @@ export class WindowsBrowserPrinter implements PrinterAdapter {
             height: auto !important;
             display: block !important;
             margin: 0 auto !important;
+            object-fit: contain !important;
             image-rendering: -webkit-optimize-contrast;
             image-rendering: crisp-edges;
             image-rendering: pixelated;

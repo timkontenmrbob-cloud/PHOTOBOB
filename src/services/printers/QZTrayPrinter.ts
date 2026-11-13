@@ -271,61 +271,39 @@ export class QZTrayPrinter implements PrinterAdapter {
       let config: any;
       let printData: any[];
 
-      if (settings.qzUseRawEscpos) {
-        // --- MODE A: RAW ESC/POS DIRECT BYTECODE ---
-        console.log(`[QZTrayPrinter] Mengirim pekerjaan via Raw ESC/POS ke "${resolvedPrinter}"...`);
-        config = qz.configs.create(resolvedPrinter, {
-          encoding: 'UTF-8',
-        });
+      // Direct ESC/POS Hardware Execution (Native for iWare IW D260UL & 80mm thermal receipt printers)
+      // Fixes:
+      // 1. "hasilnya jadi hitam pekat": set quantization: 'dither', threshold: 128 (default was 'alpha' which turns all opaque pixels solid black)
+      // 2. "driver windows malah gak keluar": bypasses Windows GDI print spooler drops by speaking native ESC/POS bytecode
+      console.log(`[QZTrayPrinter] Mengirim pekerjaan via Direct ESC/POS ke "${resolvedPrinter}"...`);
+      config = qz.configs.create(resolvedPrinter, {
+        encoding: 'UTF-8',
+      });
 
-        printData = [
-          '\x1B\x40', // ESC @ (Initialize printer, reset any top line spacing)
-          '\x1B\x61\x01', // ESC a 1 (Center alignment)
-          {
-            type: 'raw',
-            format: 'image',
-            flavor: 'base64',
-            data: cleanBase64,
-            options: {
-              language: 'escpos',
-              imageEncoding: 'gs_v_0', // Native 203 DPI raster bit image: perfect 1:1 pixel fidelity, eliminates stretching and buffer splitting
-            },
+      printData = [
+        '\x1B\x40', // ESC @ (Initialize printer, reset any previous formatting)
+        '\x1B\x61\x01', // ESC a 1 (Center alignment)
+        {
+          type: 'raw',
+          format: 'image',
+          flavor: 'base64',
+          data: cleanBase64,
+          options: {
+            language: 'escpos',
+            imageEncoding: 'gs_v_0', // Native 203 DPI raster bit image: perfect 1:1 pixel fidelity
+            quantization: 'dither', // FIX: Luminance-based dithering prevents the default 'alpha' from turning the whole image solid black
+            threshold: 128,
           },
-          '\x0A', // Line feed to ensure raster buffer is fully flushed to thermal printhead
-          '\x1B\x61\x00', // ESC a 0 (Reset to normal left alignment)
-        ];
+        },
+        '\x0A', // Line feed to ensure raster buffer is fully flushed to thermal printhead
+        '\x1B\x61\x00', // ESC a 0 (Reset to normal left alignment)
+      ];
 
-        if (settings.qzFeedAndCut) {
-          // Feed 2 lines so cutter cuts cleanly past the bottom edge of the photo
-          const feed = settings.feedLines && settings.feedLines > 0 ? Math.min(settings.feedLines, 5) : 2;
-          printData.push(`\x1Bd${String.fromCharCode(feed)}`);
-          printData.push('\x1DV\x42\x00'); // GS V 66 0 (Cut paper cleanly at cutting position)
-        }
-      } else {
-        // --- MODE B: PIXEL DRIVER MODE (NATIVE 80mm THERMAL COMPLIANT - AUTO FIT & CENTER) ---
-        console.log(`[QZTrayPrinter] Mengirim pekerjaan via Windows Driver (Pixel) ke "${resolvedPrinter}"...`);
-
-        const paperWidthMm = settings.windowsPaperWidthMm || 80;
-        const receiptHeightMm = Math.max(60, settings.windowsPageHeightMm || 80);
-
-        config = qz.configs.create(resolvedPrinter, {
-          units: 'mm',
-          size: { width: paperWidthMm, height: receiptHeightMm }, // Explicit dimensions avoid QZ Tray height validation error
-          margins: 0,
-          scaleContent: true, // Must be true so canvas scales to fit 80mm roll without tiling into several parts
-          rasterize: true,
-          density: 203, // 203 DPI standard for thermal receipt printers
-          jobName: `PHOTOBOX_${sessionRef}`,
-        });
-
-        printData = [
-          {
-            type: 'pixel',
-            format: 'image',
-            flavor: 'base64',
-            data: cleanBase64,
-          },
-        ];
+      if (settings.qzFeedAndCut) {
+        // Feed 2 lines so cutter cuts cleanly past the bottom edge of the photo
+        const feed = settings.feedLines && settings.feedLines > 0 ? Math.min(settings.feedLines, 5) : 2;
+        printData.push(`\x1Bd${String.fromCharCode(feed)}`);
+        printData.push('\x1DV\x42\x00'); // GS V 66 0 (Cut paper cleanly at cutting position)
       }
 
       // 4. Send print job with 18-second timeout protection

@@ -1387,20 +1387,13 @@ export const AdminSettingsScreen: React.FC<{ onClose: () => void }> = ({ onClose
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-                  <div>
-                    <label className="block font-semibold mb-1">Metode Pengiriman Gambar</label>
-                    <select
-                      value={formData.qzUseRawEscpos ? 'raw' : 'driver'}
-                      onChange={(e) => setFormData({ ...formData, qzUseRawEscpos: e.target.value === 'raw' })}
-                      className="w-full h-10 px-3 rounded-lg border border-brand-border bg-white font-medium"
-                    >
-                      <option value="raw">Raw ESC/POS Direct (0mm Margin / Tanpa Spasi Atas) — Rekomendasi iWare</option>
-                      <option value="driver">Driver Windows (Pixel / Raster Spooler)</option>
-                    </select>
-                    <p className="text-[11px] text-brand-muted mt-1">
-                      {formData.qzUseRawEscpos
-                        ? '⚡ Raw ESC/POS: Mencetak langsung dari baris 0 hardware printer thermal tanpa margin atas driver Windows (paling hemat kertas).'
-                        : 'Driver Windows Spooler: Menggunakan layout driver Windows (dapat menyisakan spasi atas jika ukuran kertas driver belum diubah).'}
+                  <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl space-y-1">
+                    <p className="font-bold text-emerald-800 flex items-center gap-1.5">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                      <span>Direct ESC/POS 203 DPI (Aktif Otomatis)</span>
+                    </p>
+                    <p className="text-[11px] text-emerald-700 leading-relaxed">
+                      Mesin cetak dikunci otomatis ke protokol hardware native ESC/POS (0mm margin, resolusi native 203 DPI, dan dithering Black & White otomatis). Bebas kendala hitam pekat dan tanpa perlu memilih mesin cetak manual.
                     </p>
                   </div>
 
@@ -1418,6 +1411,9 @@ export const AdminSettingsScreen: React.FC<{ onClose: () => void }> = ({ onClose
                         Kirim perintah feed kertas & auto-cut setelah foto selesai
                       </label>
                     </div>
+                    <p className="text-[11px] text-brand-muted mt-1">
+                      Kertas otomatis dipotong rapi tepat setelah foto selesai dicetak.
+                    </p>
                   </div>
                 </div>
 

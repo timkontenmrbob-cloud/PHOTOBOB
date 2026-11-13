@@ -108,6 +108,7 @@ export function loadSettings(): AdminSettings {
       showFooter,
       headerHeight: showHeader ? (parsed.headerHeight || 40) : 0,
       footerHeight: showFooter ? (parsed.footerHeight || 70) : 0,
+      qzUseRawEscpos: true, // Always true for hardware thermal receipt printers
       printerMode: resolvedMode,
       // Ensure correct port 8181 for secure QZ Tray
       qzPort: parsed.qzPort === 8182 ? 8181 : (parsed.qzPort || 8181),

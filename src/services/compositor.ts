@@ -122,10 +122,10 @@ function createThermalDitherSimulation(sourceCanvas: HTMLCanvasElement): string 
     }
   }
 
-  // Put back to RGBA (slightly warm black/white thermal paper look)
+  // Put back to RGBA: pure 0 for black ink dot, pure 255 for white receipt paper
   for (let i = 0; i < w * h; i++) {
     const idx = i * 4;
-    const v = gray[i] === 0 ? 25 : 250; // dark ink vs receipt paper
+    const v = gray[i] === 0 ? 0 : 255;
     d[idx] = v;
     d[idx + 1] = v;
     d[idx + 2] = v;
@@ -296,8 +296,8 @@ export async function composePhotoboxLayout(options: ComposeOptions): Promise<Co
   // Create simulated thermal dithered preview for visitor
   const thermalPreviewUrl = createThermalDitherSimulation(canvas);
 
-  // Export raw base64 PNG without data URL prefix for Cleanter
-  const cleanterBase64 = previewDataUrl.replace(/^data:image\/png;base64,/, '');
+  // Export raw base64 PNG from the dithered image for Cleanter & QZ Tray
+  const cleanterBase64 = thermalPreviewUrl.replace(/^data:image\/png;base64,/, '');
 
   return {
     previewUrl: previewDataUrl,

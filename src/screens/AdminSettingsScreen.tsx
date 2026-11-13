@@ -1279,7 +1279,7 @@ export const AdminSettingsScreen: React.FC<{ onClose: () => void }> = ({ onClose
                 </div>
 
                 <p className="text-xs text-brand-muted">
-                  Preview dan cetakan memakai pengaturan B&amp;W yang sama. Hasil fisik tetap perlu diuji.
+                  Preview dan QZ memakai gambar dengan pola titik teratur yang sama. Hasil fisik tetap perlu diuji.
                   Naikkan kecerahan untuk hasil lebih terang. Turunkan kontras di bawah 1,00 untuk bayangan lebih lembut.
                 </p>
                 <button

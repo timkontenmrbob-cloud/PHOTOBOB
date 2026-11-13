@@ -97,55 +97,37 @@ function applyGrayscale(ctx: CanvasRenderingContext2D, width: number, height: nu
 }
 
 /**
- * Performs client-side Floyd-Steinberg dithering for simulated thermal preview
+ * Regular clustered halftone dots at the printer's native resolution.
+ * Unlike error diffusion, the repeating screen keeps midtones in distinct dots.
  */
 function createThermalDitherSimulation(sourceCanvas: HTMLCanvasElement): string {
   const canvas = document.createElement('canvas');
   canvas.width = sourceCanvas.width;
   canvas.height = sourceCanvas.height;
   const ctx = canvas.getContext('2d');
-  if (!ctx) return sourceCanvas.toDataURL('image/png');
+  if (!ctx) throw new Error('Gagal menyiapkan pola titik untuk cetak thermal.');
 
   ctx.drawImage(sourceCanvas, 0, 0);
   const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-  const d = imgData.data;
-  const w = canvas.width;
-  const h = canvas.height;
-
-  // Convert to grayscale luminance array
-  const gray = new Float32Array(w * h);
-  for (let i = 0; i < w * h; i++) {
-    const idx = i * 4;
-    // Rec. 709 luminance
-    gray[i] = d[idx] * 0.2126 + d[idx + 1] * 0.7152 + d[idx + 2] * 0.0722;
-  }
-
-  // Floyd-Steinberg error diffusion
-  for (let y = 0; y < h; y++) {
-    for (let x = 0; x < w; x++) {
-      const idx = y * w + x;
-      const oldVal = gray[idx];
-      const newVal = oldVal < 128 ? 0 : 255;
-      gray[idx] = newVal;
-      const err = oldVal - newVal;
-
-      if (x + 1 < w) gray[idx + 1] += (err * 7) / 16;
-      if (x - 1 >= 0 && y + 1 < h) gray[idx + w - 1] += (err * 3) / 16;
-      if (y + 1 < h) gray[idx + w] += (err * 5) / 16;
-      if (x + 1 < w && y + 1 < h) gray[idx + w + 1] += (err * 1) / 16;
+  const data = imgData.data;
+  // A 4x4 clustered screen grows each dot from its center (0.5 mm at 203 DPI).
+  const screen = [
+    [12, 5, 6, 13],
+    [4, 0, 1, 7],
+    [11, 3, 2, 8],
+    [15, 10, 9, 14],
+  ];
+  for (let y = 0; y < canvas.height; y++) {
+    for (let x = 0; x < canvas.width; x++) {
+      const i = (y * canvas.width + x) * 4;
+      const gray = data[i] * 0.2126 + data[i + 1] * 0.7152 + data[i + 2] * 0.0722;
+      const coverage = (255 - gray) / 255;
+      const threshold = (screen[y % 4][x % 4] + 0.5) / 16;
+      const value = coverage > threshold ? 0 : 255;
+      data[i] = data[i + 1] = data[i + 2] = value;
+      data[i + 3] = 255;
     }
   }
-
-  // Put back to RGBA: pure 0 for black ink dot, pure 255 for white receipt paper
-  for (let i = 0; i < w * h; i++) {
-    const idx = i * 4;
-    const v = gray[i] === 0 ? 0 : 255;
-    d[idx] = v;
-    d[idx + 1] = v;
-    d[idx + 2] = v;
-    d[idx + 3] = 255;
-  }
-
   ctx.putImageData(imgData, 0, 0);
   return canvas.toDataURL('image/png');
 }
@@ -307,9 +289,6 @@ export async function composePhotoboxLayout(options: ComposeOptions): Promise<Co
     );
   }
 
-  // Keep the on-screen B&W smooth while matching the calibrated print tones.
-  const previewDataUrl = canvas.toDataURL('image/png');
-
   // The thermal printer requires one-bit output to represent those tones as dots.
   const thermalPreviewUrl = createThermalDitherSimulation(canvas);
 
@@ -317,7 +296,7 @@ export async function composePhotoboxLayout(options: ComposeOptions): Promise<Co
   const cleanterBase64 = thermalPreviewUrl.replace(/^data:image\/png;base64,/, '');
 
   return {
-    previewUrl: previewDataUrl,
+    previewUrl: thermalPreviewUrl, // Show the exact dotted raster sent to the printer.
     thermalPreviewUrl,
     cleanterBase64,
     width: printWidth,

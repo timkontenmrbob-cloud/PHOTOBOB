@@ -203,22 +203,32 @@ export class QZTrayPrinter implements PrinterAdapter {
         };
       }
 
-      // Check if target printer is registered in Windows
+      // Check if target printer is registered in Windows with smart fallback
       try {
-        const matched = await qz.printers.find(targetPrinter);
-        const printerName = Array.isArray(matched) ? matched[0] : matched;
+        let matched = await qz.printers.find(targetPrinter);
+        let printerName = Array.isArray(matched) ? matched[0] : matched;
+
+        if (!printerName) {
+          const allPrinters = await qz.printers.find();
+          const list = Array.isArray(allPrinters) ? allPrinters : [allPrinters];
+          const candidate = list.find((p) => /iware|d260|pos|receipt|thermal|80/i.test(p));
+          if (candidate) {
+            printerName = candidate;
+          } else {
+            const def = await qz.printers.getDefault();
+            if (def) printerName = def;
+          }
+        }
 
         if (printerName) {
           return {
             ready: true,
-            info: `QZ Tray aktif terhubung ke printer "${printerName}". Siap mencetak 1-klik otomatis (Port ${
-              settings.qzUseSecure ? '8181 WSS' : '8182 WS'
-            }).`,
+            info: `QZ Tray aktif terhubung ke printer "${printerName}". Siap mencetak 1-klik otomatis.`,
           };
         } else {
           return {
             ready: false,
-            error: `Printer "${targetPrinter}" tidak ditemukan pada daftar printer Windows.`,
+            error: `Printer "${targetPrinter}" tidak ditemukan pada daftar printer Windows. Pastikan driver iWare terpasang.`,
           };
         }
       } catch (findErr) {
@@ -244,7 +254,7 @@ export class QZTrayPrinter implements PrinterAdapter {
     const { settings, base64Image, sessionRef } = params;
     const targetPrinter = settings.qzPrinterName?.trim() || 'iWare IW D260UL';
 
-    console.log(`[QZTrayPrinter] print() dipanggil untuk sesi: ${sessionRef}, target: "${targetPrinter}"`);
+    console.log(`[QZTrayPrinter] print() dipanggil untuk sesi: ${sessionRef}, target konfigurasi: "${targetPrinter}"`);
 
     try {
       // 1. Ensure WebSocket connection (NEVER fallback to browser printing)
@@ -261,16 +271,40 @@ export class QZTrayPrinter implements PrinterAdapter {
         };
       }
 
-      // 3. Prepare Print Payload
+      // 3. Auto-resolve actual printer name in Windows (handles POS-80 vs iWare differences)
+      let resolvedPrinter = targetPrinter;
+      try {
+        const matched = await qz.printers.find(targetPrinter);
+        if (matched) {
+          resolvedPrinter = Array.isArray(matched) ? matched[0] : matched;
+        } else {
+          const allPrinters = await qz.printers.find();
+          const list = Array.isArray(allPrinters) ? allPrinters : [allPrinters];
+          const candidate = list.find((p) => /iware|d260|pos|receipt|thermal|80/i.test(p));
+          if (candidate) {
+            resolvedPrinter = candidate;
+            console.log(`[QZTrayPrinter] Auto-matched printer Windows ke: "${resolvedPrinter}"`);
+          } else {
+            const def = await qz.printers.getDefault();
+            if (def) {
+              resolvedPrinter = def;
+              console.log(`[QZTrayPrinter] Menggunakan default printer Windows: "${resolvedPrinter}"`);
+            }
+          }
+        }
+      } catch (findErr) {
+        console.warn('[QZTrayPrinter] Gagal auto-resolve printer, tetap menggunakan:', targetPrinter, findErr);
+      }
+
+      // 4. Prepare Print Payload
       let config: any;
       let printData: any[];
 
       if (settings.qzUseRawEscpos) {
-        // --- MODE A: RAW ESC/POS MODE ---
-        console.log('[QZTrayPrinter] Mengirim pekerjaan via Raw ESC/POS...');
-        config = qz.configs.create(targetPrinter, {
+        // --- MODE A: RAW ESC/POS DIRECT BYTECODE ---
+        console.log(`[QZTrayPrinter] Mengirim pekerjaan via Raw ESC/POS ke "${resolvedPrinter}"...`);
+        config = qz.configs.create(resolvedPrinter, {
           encoding: 'UTF-8',
-          rasterize: true,
         });
 
         printData = [
@@ -291,22 +325,14 @@ export class QZTrayPrinter implements PrinterAdapter {
           printData.push('\x1DV\x42\x00');
         }
       } else {
-        // --- MODE B: PIXEL DRIVER MODE (RECOMMENDED DEFAULT FOR iWare) ---
-        console.log('[QZTrayPrinter] Mengirim pekerjaan via Windows Driver (Raster Pixel)...');
-        const printableWidthMm = settings.windowsPrintableWidthMm || 72;
-        const pageHeightMm = settings.windowsPageHeightMm || 120;
+        // --- MODE B: PIXEL DRIVER MODE (NATIVE 80mm THERMAL COMPLIANT) ---
+        console.log(`[QZTrayPrinter] Mengirim pekerjaan via Windows Driver (Pixel) ke "${resolvedPrinter}"...`);
 
-        config = qz.configs.create(targetPrinter, {
-          margins: settings.windowsMarginMm || 0,
-          rasterize: true,
-          colorType: 'blackwhite',
+        // Use native thermal driver scaling without forcing bogus DPI or fixed page bounds
+        config = qz.configs.create(resolvedPrinter, {
+          margins: 0,
           scaleContent: true,
-          density: 203, // 203 DPI standard for 80mm thermal receipt
-          units: 'mm',
-          size: {
-            width: printableWidthMm,
-            height: pageHeightMm,
-          },
+          rasterize: false,
           jobName: `PHOTOBOX_${sessionRef}`,
         });
 

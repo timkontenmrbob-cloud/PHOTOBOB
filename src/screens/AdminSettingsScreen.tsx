@@ -1278,9 +1278,13 @@ export const AdminSettingsScreen: React.FC<{ onClose: () => void }> = ({ onClose
                   </div>
                 </div>
 
+                <p className="text-xs text-brand-muted">
+                  Preview memakai B&amp;W natural. Pengaturan berikut hanya untuk cetak thermal.
+                  Mulai dari kecerahan 1,15 dan kontras 1,00. Naikkan kecerahan bertahap jika cetakan masih gelap.
+                </p>
                 <div>
                   <label className="block font-semibold text-brand-dark mb-1">
-                    Kecerahan (Brightness): {formData.brightness.toFixed(2)}x
+                    Kecerahan Cetak: {formData.brightness.toFixed(2)}x
                   </label>
                   <input
                     type="range"
@@ -1295,7 +1299,7 @@ export const AdminSettingsScreen: React.FC<{ onClose: () => void }> = ({ onClose
 
                 <div>
                   <label className="block font-semibold text-brand-dark mb-1">
-                    Kontras (Contrast): {formData.contrast.toFixed(2)}x
+                    Kontras Cetak: {formData.contrast.toFixed(2)}x
                   </label>
                   <input
                     type="range"
@@ -1393,7 +1397,7 @@ export const AdminSettingsScreen: React.FC<{ onClose: () => void }> = ({ onClose
                       <span>Direct ESC/POS 203 DPI (Aktif Otomatis)</span>
                     </p>
                     <p className="text-[11px] text-emerald-700 leading-relaxed">
-                      Mesin cetak dikunci otomatis ke protokol hardware native ESC/POS (0mm margin, resolusi native 203 DPI, dan dithering Black & White otomatis). Bebas kendala hitam pekat dan tanpa perlu memilih mesin cetak manual.
+                      Mesin cetak dikunci otomatis ke protokol hardware native ESC/POS (0mm margin, resolusi native 203 DPI, dan dithering Black & White otomatis). Kecerahan hasil fisik perlu dikalibrasi sesuai printer dan kertas.
                     </p>
                   </div>
 

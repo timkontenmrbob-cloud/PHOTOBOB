@@ -43,8 +43,8 @@ export const DEFAULT_SETTINGS: AdminSettings = {
   marginHorizontal: 16, // 16 dots (~2mm margin for clean centered photo)
   headerHeight: 0, // 0px: header removed for automatic paper savings
   footerHeight: 0, // 0px: footer removed for automatic paper savings
-  brightness: 1.05,
-  contrast: 1.25,
+  brightness: 1.15,
+  contrast: 1.0,
   feedLines: 2, // 2 lines feed ensures cutter blade cuts past photo cleanly
   cutPaper: false,
 
@@ -56,6 +56,14 @@ export const DEFAULT_SETTINGS: AdminSettings = {
   inactivityTimeoutSeconds: 60,
   enableWakeLock: true,
 };
+
+// Replace the former high-contrast preset, retaining deliberately customized values.
+function migratePhotoCalibration(settings: AdminSettings): AdminSettings {
+  if (settings.brightness === 1.05 && settings.contrast === 1.25) {
+    return { ...settings, brightness: DEFAULT_SETTINGS.brightness, contrast: DEFAULT_SETTINGS.contrast };
+  }
+  return settings;
+}
 
 export function loadSettings(): AdminSettings {
   try {
@@ -84,9 +92,10 @@ export function loadSettings(): AdminSettings {
             printerMode: migratedMode,
             qzPort: 8181,
           };
-          saveSettings(migrated);
+          const calibrated = migratePhotoCalibration(migrated);
+          saveSettings(calibrated);
           console.log('[Storage] Pengaturan dimigrasikan ke v5 dengan mode aktif:', migrated.printerMode);
-          return migrated;
+          return calibrated;
         } catch {
           // ignore parse error
         }
@@ -101,7 +110,7 @@ export function loadSettings(): AdminSettings {
     const showHeader = parsed.showHeader !== undefined ? parsed.showHeader : false;
     const showFooter = parsed.showFooter !== undefined ? parsed.showFooter : false;
 
-    return {
+    return migratePhotoCalibration({
       ...DEFAULT_SETTINGS,
       ...parsed,
       showHeader,
@@ -112,7 +121,7 @@ export function loadSettings(): AdminSettings {
       printerMode: resolvedMode,
       // Ensure correct port 8181 for secure QZ Tray
       qzPort: parsed.qzPort === 8182 ? 8181 : (parsed.qzPort || 8181),
-    };
+    });
   } catch (error) {
     console.warn('Failed to parse settings from localStorage, using defaults', error);
     return DEFAULT_SETTINGS;

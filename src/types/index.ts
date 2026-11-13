@@ -57,8 +57,8 @@ export interface AdminSettings {
   marginHorizontal: number; // in dots/px
   headerHeight: number; // in dots/px
   footerHeight: number; // in dots/px
-  brightness: number; // multiplier, default 1.05
-  contrast: number; // multiplier, default 1.25
+  brightness: number; // print-only adjustment, default 1.15
+  contrast: number; // print-only multiplier, default 1.0
   feedLines: number; // blank lines to feed, default 3
   cutPaper: boolean; // default false
 

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Printer, RotateCcw, RefreshCw } from 'lucide-react';
 import { usePhotobox } from '../context/PhotoboxContext';
 import { Header } from '../components/Header';
@@ -11,11 +11,7 @@ export const PhotoPreviewScreen: React.FC = () => {
     retakePhoto,
   } = usePhotobox();
 
-  const [showThermalView, setShowThermalView] = useState(true);
-
-  const previewSrc = showThermalView
-    ? session.composedPreviewUrl || session.capturedPhotoUrl
-    : session.composedPreviewUrl || session.capturedPhotoUrl;
+  const previewSrc = session.composedPreviewUrl || session.capturedPhotoUrl;
 
   return (
     <div className="min-h-screen flex flex-col bg-white text-brand-dark">
@@ -56,15 +52,7 @@ export const PhotoPreviewScreen: React.FC = () => {
             )}
           </div>
 
-          {/* Toggle Simulated Thermal / Original View */}
-          <div className="flex items-center gap-2 mt-3">
-            <button
-              onClick={() => setShowThermalView((prev) => !prev)}
-              className="text-xs px-3 py-1.5 rounded-full bg-brand-blue-light text-brand-blue font-medium hover:bg-blue-100 transition-colors"
-            >
-              {showThermalView ? '📄 Tampilan Kertas Thermal' : '🎨 Tampilan Standar'}
-            </button>
-          </div>
+
         </div>
 
         <div className="h-2" />

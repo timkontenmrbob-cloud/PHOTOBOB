@@ -82,6 +82,18 @@ function applyBrightnessContrast(
   ctx.putImageData(imgData, 0, 0);
 }
 
+/** Convert the preview to plain grayscale without changing its tonal range. */
+function applyGrayscale(ctx: CanvasRenderingContext2D, width: number, height: number) {
+  const image = ctx.getImageData(0, 0, width, height);
+  for (let i = 0; i < image.data.length; i += 4) {
+    const value = Math.round(
+      image.data[i] * 0.2126 + image.data[i + 1] * 0.7152 + image.data[i + 2] * 0.0722
+    );
+    image.data[i] = image.data[i + 1] = image.data[i + 2] = value;
+  }
+  ctx.putImageData(image, 0, 0);
+}
+
 /**
  * Performs client-side Floyd-Steinberg dithering for simulated thermal preview
  */
@@ -279,7 +291,11 @@ export async function composePhotoboxLayout(options: ComposeOptions): Promise<Co
     }
   }
 
-  // 6. Apply Brightness & Contrast Optimization for thermal print
+  // Keep the visitor preview smooth and neutral. Calibration only affects the print copy.
+  applyGrayscale(ctx, printWidth, totalHeight);
+  const previewDataUrl = canvas.toDataURL('image/png');
+
+  // 6. Apply brightness and contrast to the print copy before one-bit conversion.
   if (settings.brightness !== 1.0 || settings.contrast !== 1.0) {
     applyBrightnessContrast(
       ctx,
@@ -290,10 +306,7 @@ export async function composePhotoboxLayout(options: ComposeOptions): Promise<Co
     );
   }
 
-  // Create standard preview data URL
-  const previewDataUrl = canvas.toDataURL('image/png');
-
-  // Create simulated thermal dithered preview for visitor
+  // Prepare one-bit thermal output; never use this as the standard photo preview.
   const thermalPreviewUrl = createThermalDitherSimulation(canvas);
 
   // Export raw base64 PNG from the dithered image for Cleanter & QZ Tray

@@ -36,10 +36,12 @@ export default defineConfig({
         ],
       },
       workbox: {
+        skipWaiting: true,
+        clientsClaim: true,
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
         navigateFallback: '/index.html',
-        // Ensure no caching for localhost bridge requests
-        navigateFallbackDenylist: [/^\/api\//, /^http:\/\/localhost:9100/],
+        // Ensure no caching for localhost bridge or WebSocket requests
+        navigateFallbackDenylist: [/^\/api\//, /^http:\/\/localhost:9100/, /^ws:\/\/localhost/, /^wss:\/\/localhost/],
         runtimeCaching: [
           {
             urlPattern: ({ url }) => url.origin === self.location.origin && url.pathname.startsWith('/frames/'),

@@ -22,9 +22,9 @@ import {
   Lock,
 } from 'lucide-react';
 import { usePhotobox } from '../context/PhotoboxContext';
-import { AdminSettings, CleanterHealthResponse } from '../types';
+import { AdminSettings, CleanterHealthResponse, PrinterMode } from '../types';
 import { printerService } from '../services/printer';
-import { DEFAULT_SETTINGS } from '../services/storage';
+import { DEFAULT_SETTINGS, loadSettings } from '../services/storage';
 
 export const AdminSettingsScreen: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const {
@@ -58,6 +58,24 @@ export const AdminSettingsScreen: React.FC<{ onClose: () => void }> = ({ onClose
   const [pwaStatus, setPwaStatus] = useState<string>('Memeriksa cache offline...');
   const [saveSuccessNotice, setSaveSuccessNotice] = useState(false);
 
+  // Immediate persistent mode selector
+  const handleSelectMode = (newMode: PrinterMode) => {
+    const updated: AdminSettings = { ...formData, printerMode: newMode };
+    setFormData(updated);
+    updateSettings(updated);
+    setSaveSuccessNotice(true);
+    setTimeout(() => setSaveSuccessNotice(false), 2000);
+    console.log(`[AdminSettingsScreen] Mode berhasil diubah ke: ${newMode}`);
+  };
+
+  // Immediate persistent printer name selector
+  const handleSelectPrinter = (newPrinter: string) => {
+    const updated: AdminSettings = { ...formData, qzPrinterName: newPrinter };
+    setFormData(updated);
+    updateSettings(updated);
+    console.log(`[AdminSettingsScreen] Printer target berhasil diubah ke: ${newPrinter}`);
+  };
+
   // Fetch list of Windows printers via QZ Tray WebSocket
   const fetchQZPrinters = async () => {
     setIsLoadingPrinters(true);
@@ -68,15 +86,15 @@ export const AdminSettingsScreen: React.FC<{ onClose: () => void }> = ({ onClose
       setDetectedPrinters(list);
       setQzStatus('connected');
       if (list.length > 0) {
-        setQzStatusMessage(`QZ Tray terhubung. ${list.length} printer Windows terdeteksi.`);
+        setQzStatusMessage(`QZ Tray terhubung (Port 8181 WSS). ${list.length} printer Windows terdeteksi.`);
         // If current qzPrinterName is not in the list or is default, find best candidate
         if (!formData.qzPrinterName || !list.includes(formData.qzPrinterName)) {
           const match = list.find((p) => /iware|d260|pos|thermal|receipt|80mm/i.test(p));
-          if (match) {
-            setFormData((prev) => ({ ...prev, qzPrinterName: match }));
-          } else if (list.length > 0) {
-            setFormData((prev) => ({ ...prev, qzPrinterName: list[0] }));
-          }
+          const chosen = match || list[0];
+          const updated: AdminSettings = { ...formData, qzPrinterName: chosen };
+          setFormData(updated);
+          updateSettings(updated);
+          console.log(`[AdminSettingsScreen] Auto-selected printer: ${chosen}`);
         }
       } else {
         setQzStatusMessage('QZ Tray aktif terhubung, namun tidak ada printer terpasang di Windows.');
@@ -248,11 +266,23 @@ export const AdminSettingsScreen: React.FC<{ onClose: () => void }> = ({ onClose
     const testDataUrl = canvas.toDataURL('image/png');
     const testBase64 = testDataUrl.replace(/^data:image\/png;base64,/, '');
 
+    const currentPersisted = loadSettings();
+    const activeTestSettings: AdminSettings = {
+      ...formData,
+      ...currentPersisted,
+      printerMode: formData.printerMode,
+      qzPrinterName: formData.qzPrinterName,
+    };
+
+    console.log(
+      `[AdminSettingsScreen] Menjalankan Test Print. Mode: "${activeTestSettings.printerMode}", Target: "${activeTestSettings.qzPrinterName}"`
+    );
+
     const res = await printerService.printPhotobox({
       base64Image: testBase64,
       previewUrl: testDataUrl,
       sessionRef: `TEST-${Date.now().toString(36).toUpperCase()}`,
-      settings: formData,
+      settings: activeTestSettings,
     });
 
     setIsTestPrinting(false);
@@ -396,9 +426,7 @@ export const AdminSettingsScreen: React.FC<{ onClose: () => void }> = ({ onClose
             {/* Mode 1: Windows Automatic Printing (QZ Tray) - RECOMMENDED */}
             <button
               type="button"
-              onClick={() => {
-                setFormData({ ...formData, printerMode: 'windows-qz' });
-              }}
+              onClick={() => handleSelectMode('windows-qz')}
               className={`p-4 rounded-xl text-left border-2 transition-all flex flex-col justify-between ${
                 formData.printerMode === 'windows-qz'
                   ? 'border-brand-blue bg-white shadow-sm ring-2 ring-brand-blue/20'
@@ -430,7 +458,7 @@ export const AdminSettingsScreen: React.FC<{ onClose: () => void }> = ({ onClose
             {/* Mode 2: Windows USB — Browser Print */}
             <button
               type="button"
-              onClick={() => setFormData({ ...formData, printerMode: 'windows-usb' })}
+              onClick={() => handleSelectMode('windows-usb')}
               className={`p-4 rounded-xl text-left border-2 transition-all flex flex-col justify-between ${
                 formData.printerMode === 'windows-usb'
                   ? 'border-brand-blue bg-white shadow-sm ring-2 ring-brand-blue/20'
@@ -461,7 +489,7 @@ export const AdminSettingsScreen: React.FC<{ onClose: () => void }> = ({ onClose
             {/* Mode 3: Android Bluetooth — Event */}
             <button
               type="button"
-              onClick={() => setFormData({ ...formData, printerMode: 'android-bluetooth' })}
+              onClick={() => handleSelectMode('android-bluetooth')}
               className={`p-4 rounded-xl text-left border-2 transition-all flex flex-col justify-between ${
                 formData.printerMode === 'android-bluetooth'
                   ? 'border-brand-blue bg-white shadow-sm ring-2 ring-brand-blue/20'
@@ -567,7 +595,7 @@ export const AdminSettingsScreen: React.FC<{ onClose: () => void }> = ({ onClose
                     {detectedPrinters.length > 0 ? (
                       <select
                         value={formData.qzPrinterName}
-                        onChange={(e) => setFormData({ ...formData, qzPrinterName: e.target.value })}
+                        onChange={(e) => handleSelectPrinter(e.target.value)}
                         className="w-full h-11 px-3 rounded-lg border border-brand-border bg-white text-sm font-semibold text-brand-dark focus:ring-2 focus:ring-brand-blue/30 focus:outline-none"
                       >
                         {detectedPrinters.map((name) => (
@@ -590,7 +618,7 @@ export const AdminSettingsScreen: React.FC<{ onClose: () => void }> = ({ onClose
                         type="text"
                         placeholder="Contoh: iWare IW D260UL atau POS-80"
                         value={formData.qzPrinterName}
-                        onChange={(e) => setFormData({ ...formData, qzPrinterName: e.target.value })}
+                        onChange={(e) => handleSelectPrinter(e.target.value)}
                         className="flex-1 h-8 px-2.5 text-xs rounded border border-brand-border"
                       />
                     </div>
@@ -631,6 +659,18 @@ export const AdminSettingsScreen: React.FC<{ onClose: () => void }> = ({ onClose
                     <span>{isTestPrinting ? 'Mengirim...' : 'TEST PRINT (QZ TRAY)'}</span>
                   </button>
                 </div>
+
+                {testPrintMessage && (
+                  <div
+                    className={`p-3 rounded-xl text-xs font-semibold ${
+                      testPrintMessage.startsWith('✅')
+                        ? 'bg-green-50 text-green-700 border border-green-200'
+                        : 'bg-red-50 text-red-700 border border-red-200'
+                    }`}
+                  >
+                    {testPrintMessage}
+                  </div>
+                )}
               </div>
             ) : formData.printerMode === 'windows-usb' ? (
               // WINDOWS USB / iWare STATUS CARD
@@ -740,6 +780,115 @@ export const AdminSettingsScreen: React.FC<{ onClose: () => void }> = ({ onClose
                 </div>
               </div>
             )}
+
+            {/* PRINTER DEBUG DIAGNOSTICS PANEL (Requirement 5) */}
+            <div className="bg-slate-900 text-white rounded-2xl p-5 shadow-sm space-y-4 font-mono text-xs border border-slate-800">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
+                  <span className="font-bold text-sm tracking-wide text-slate-100 font-sans">
+                    Diagnostik Printer Kiosk (Admin Debug)
+                  </span>
+                </div>
+                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-300">
+                  Routing: Strict Isolated
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-slate-300">
+                <div className="bg-slate-800/80 p-3 rounded-xl border border-slate-700/60 space-y-1">
+                  <span className="text-[10px] uppercase font-bold text-slate-400 block">Mode Aktif</span>
+                  <span className="text-sm font-bold text-white flex items-center gap-1.5 font-sans">
+                    {formData.printerMode === 'windows-qz' ? (
+                      <span className="text-emerald-400 font-bold">windows-qz (QZ Tray)</span>
+                    ) : formData.printerMode === 'windows-usb' ? (
+                      <span className="text-blue-400 font-bold">windows-usb (Browser)</span>
+                    ) : (
+                      <span className="text-purple-400 font-bold">android-bluetooth (Cleanter)</span>
+                    )}
+                  </span>
+                </div>
+
+                <div className="bg-slate-800/80 p-3 rounded-xl border border-slate-700/60 space-y-1">
+                  <span className="text-[10px] uppercase font-bold text-slate-400 block">Printer Terpilih</span>
+                  <span className="text-xs font-bold text-white truncate block">
+                    {formData.printerMode === 'windows-qz'
+                      ? formData.qzPrinterName || '(Belum dipilih)'
+                      : formData.printerMode === 'windows-usb'
+                      ? 'iWare IW D260UL (Driver Windows)'
+                      : 'VSC TM-80D (Bluetooth)'}
+                  </span>
+                </div>
+
+                <div className="bg-slate-800/80 p-3 rounded-xl border border-slate-700/60 space-y-1">
+                  <span className="text-[10px] uppercase font-bold text-slate-400 block">Adapter Terpasang</span>
+                  <span className="text-xs font-medium text-slate-200">
+                    {printerService.getAdapter(formData.printerMode).name}
+                  </span>
+                </div>
+
+                <div className="bg-slate-800/80 p-3 rounded-xl border border-slate-700/60 space-y-1">
+                  <span className="text-[10px] uppercase font-bold text-slate-400 block">Port & Protokol</span>
+                  <span className="text-xs font-medium text-slate-200">
+                    {formData.printerMode === 'windows-qz'
+                      ? 'WSS Port 8181 (Auto cycle 8282-8484)'
+                      : formData.printerMode === 'windows-usb'
+                      ? 'Native Browser window.print()'
+                      : 'HTTP Port 9100 Cleanter'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Strict Isolation Notice */}
+              <div className="p-2.5 rounded-lg bg-slate-800/60 border border-slate-700 text-[11px] text-slate-300 space-y-1">
+                <div className="flex items-center gap-1.5 font-bold text-slate-200">
+                  <span className="text-amber-400">🛡️ Kebijakan Isolasi Cetak:</span>
+                </div>
+                <p>
+                  {formData.printerMode === 'windows-qz'
+                    ? '• window.print() DILARANG TOTAL. Hanya QZ Tray qz.print() yang dieksekusi.'
+                    : formData.printerMode === 'windows-usb'
+                    ? '• Menggunakan window.print() browser dialog untuk driver Windows iWare.'
+                    : '• Menggunakan HTTP bridge Cleanter ke printer VSC TM-80D.'}
+                </p>
+              </div>
+
+              {/* Last Print Diagnostic Log */}
+              {(() => {
+                const lastDiag = printerService.getLastDiagnostics();
+                if (!lastDiag) {
+                  return (
+                    <div className="p-2.5 rounded-lg bg-slate-800/40 border border-slate-800 text-[11px] text-slate-400 italic">
+                      Belum ada aktivitas cetak pada sesi ini. Klik "TEST PRINT (QZ TRAY)" di atas untuk memverifikasi jalur printer.
+                    </div>
+                  );
+                }
+                return (
+                  <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-1.5">
+                    <div className="flex items-center justify-between text-[11px]">
+                      <span className="text-slate-400">Log Eksekusi Terakhir ({lastDiag.timestamp}):</span>
+                      <span
+                        className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
+                          lastDiag.status === 'success'
+                            ? 'bg-emerald-950 text-emerald-400 border border-emerald-800'
+                            : lastDiag.status === 'error'
+                            ? 'bg-rose-950 text-rose-400 border border-rose-800'
+                            : 'bg-amber-950 text-amber-400 border border-amber-800'
+                        }`}
+                      >
+                        {lastDiag.status.toUpperCase()}
+                      </span>
+                    </div>
+                    <p className="text-slate-200 text-xs font-semibold">{lastDiag.message}</p>
+                    {lastDiag.detail && (
+                      <p className="text-slate-400 text-[11px] leading-relaxed">
+                        Detail: {lastDiag.detail}
+                      </p>
+                    )}
+                  </div>
+                );
+              })()}
+            </div>
 
             {/* Hardware & PWA Status */}
             <div className="bg-white border border-brand-border rounded-2xl p-5 shadow-sm space-y-4">

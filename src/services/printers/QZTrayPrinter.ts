@@ -14,7 +14,6 @@ export class QZTrayPrinter implements PrinterAdapter {
   private isConnecting = false;
 
   constructor() {
-    // Listeners for WebSocket closures/errors
     try {
       qz.websocket.setClosedCallbacks(() => {
         console.warn('[QZ Tray] Koneksi WebSocket ditutup.');
@@ -29,8 +28,6 @@ export class QZTrayPrinter implements PrinterAdapter {
 
   /**
    * Configure certificate and signature handlers if provided.
-   * If not configured, QZ Tray displays an authorization dialog with
-   * an option to "Remember this decision".
    */
   private configureSecurity(settings: AdminSettings): void {
     if (this.securityInitialized) return;
@@ -39,6 +36,7 @@ export class QZTrayPrinter implements PrinterAdapter {
       // 1. Digital Certificate Promise
       qz.security.setCertificatePromise((resolve: (cert?: string) => void) => {
         if (settings.qzCertificateUrl && settings.qzCertificateUrl.trim() !== '') {
+          console.log('[QZ Tray] Mengambil sertifikat dari:', settings.qzCertificateUrl);
           fetch(settings.qzCertificateUrl)
             .then((res) => {
               if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -94,8 +92,11 @@ export class QZTrayPrinter implements PrinterAdapter {
   }
 
   /**
-   * Connect to QZ Tray WebSocket if not already active.
-   * Supports intelligent fallback: tries secure first, then insecure if on localhost.
+   * Connect to QZ Tray WebSocket.
+   * Documented default ports:
+   *   - Secure (WSS)   : 8181 (cycles through 8282, 8383, 8484)
+   *   - Insecure (WS)  : 8182 (cycles through 8283, 8384, 8485)
+   * When on HTTPS (e.g. Vercel deployment), WSS (port 8181) is mandatory.
    */
   public async ensureConnected(settings: AdminSettings): Promise<boolean> {
     if (qz.websocket.isActive()) {
@@ -103,7 +104,6 @@ export class QZTrayPrinter implements PrinterAdapter {
     }
 
     if (this.isConnecting) {
-      // Wait up to 3 seconds for existing attempt
       for (let i = 0; i < 30; i++) {
         await new Promise((r) => setTimeout(r, 100));
         if (qz.websocket.isActive()) return true;
@@ -114,31 +114,50 @@ export class QZTrayPrinter implements PrinterAdapter {
     this.configureSecurity(settings);
 
     const isHttps = typeof window !== 'undefined' && window.location.protocol === 'https:';
+    const useSecure = settings.qzUseSecure !== undefined ? settings.qzUseSecure : isHttps;
     const host = settings.qzHost || 'localhost';
 
+    console.log(
+      `[QZTrayPrinter] Menghubungi QZ Tray. Host: "${host}", Secure (WSS): ${useSecure}, Port target: ${
+        useSecure ? '8181 (WSS)' : '8182 (WS)'
+      }`
+    );
+
     try {
-      // Connect using configured or detected security preference
-      await qz.websocket.connect({
-        host,
-        usingSecure: settings.qzUseSecure ?? isHttps,
+      // Connect using exact documented QZ Tray port mapping:
+      // Secure (WSS) = [8181, 8282, 8383, 8484]
+      // Insecure (WS) = [8182, 8283, 8384, 8485]
+      const connectOptions: any = {
+        host: [host, 'localhost', '127.0.0.1'],
+        usingSecure: useSecure,
         retries: 2,
         delay: 1,
-      });
+        port: useSecure
+          ? { secure: [8181, 8282, 8383, 8484], insecure: [] }
+          : { secure: [], insecure: [8182, 8283, 8384, 8485] },
+      };
+
+      await qz.websocket.connect(connectOptions);
+      console.log('[QZTrayPrinter] QZ Tray WebSocket terhubung sukses!');
       return true;
     } catch (err) {
-      console.warn('[QZ Tray] Percobaan koneksi primer gagal, mencoba alternatif...', err);
-      // If we failed and are running over HTTP or localhost, attempt non-secure fallback
-      if (!isHttps || host === 'localhost' || host === '127.0.0.1') {
+      console.error('[QZTrayPrinter] Percobaan koneksi primer gagal:', err);
+
+      // On localhost HTTP only, attempt insecure fallback
+      if (!isHttps) {
         try {
+          console.log('[QZTrayPrinter] Mencoba fallback insecure ws://localhost:8182...');
           await qz.websocket.connect({
-            host,
+            host: ['localhost', '127.0.0.1'],
             usingSecure: false,
+            port: { secure: [], insecure: [8182, 8283, 8384, 8485] },
             retries: 1,
             delay: 1,
           });
+          console.log('[QZTrayPrinter] Fallback insecure berhasil!');
           return true;
         } catch (fallbackErr) {
-          console.error('[QZ Tray] Gagal koneksi ke QZ Tray (insecure fallback):', fallbackErr);
+          console.error('[QZTrayPrinter] Fallback insecure juga gagal:', fallbackErr);
           throw fallbackErr;
         }
       }
@@ -190,7 +209,9 @@ export class QZTrayPrinter implements PrinterAdapter {
         if (printerName) {
           return {
             ready: true,
-            info: `QZ Tray aktif terhubung ke printer "${printerName}". Siap mencetak 1-klik otomatis.`,
+            info: `QZ Tray aktif terhubung ke printer "${printerName}". Siap mencetak 1-klik otomatis (Port ${
+              settings.qzUseSecure ? '8181 WSS' : '8182 WS'
+            }).`,
           };
         } else {
           return {
@@ -208,38 +229,32 @@ export class QZTrayPrinter implements PrinterAdapter {
       const errorMsg = (err as Error)?.message || String(err);
       return {
         ready: false,
-        error: `QZ Tray tidak aktif: ${errorMsg}. Pastikan aplikasi QZ Tray sedang berjalan di latar belakang Windows.`,
+        error: `Printer tidak terhubung. Silakan panggil petugas. (QZ Tray: ${errorMsg})`,
       };
     }
   }
 
   /**
    * Send the composed photobox image directly to QZ Tray.
-   * Completely bypasses window.print() and the browser print dialog.
+   * STRICT GUARANTEE: Never invokes window.print() or the browser print dialog.
    */
   async print(params: PrintJobParams): Promise<PrintResult> {
     const { settings, base64Image, sessionRef } = params;
-    const targetPrinter = settings.qzPrinterName?.trim();
+    const targetPrinter = settings.qzPrinterName?.trim() || 'iWare IW D260UL';
 
-    if (!targetPrinter) {
-      return {
-        success: false,
-        errorMessage: 'Printer target belum ditentukan pada pengaturan Admin.',
-        errorFix:
-          'Buka menu Pengaturan Admin, lalu pilih nama printer USB (misal: "iWare IW D260UL" atau "POS-80").',
-      };
-    }
+    console.log(`[QZTrayPrinter] print() dipanggil untuk sesi: ${sessionRef}, target: "${targetPrinter}"`);
 
     try {
-      // 1. Ensure WebSocket connection
+      // 1. Ensure WebSocket connection (NEVER fallback to browser printing)
       await this.ensureConnected(settings);
 
       // 2. Validate clean base64 data
       const cleanBase64 = base64Image.replace(/^data:image\/[a-z]+;base64,/, '');
       if (!cleanBase64 || cleanBase64.length === 0) {
+        console.error('[QZTrayPrinter] Base64 image kosong!');
         return {
           success: false,
-          errorMessage: 'Data gambar cetak kosong atau tidak valid.',
+          errorMessage: 'Data gambar cetak tidak valid.',
           errorFix: 'Silakan ambil foto ulang dan ulangi proses pencetakan.',
         };
       }
@@ -247,7 +262,7 @@ export class QZTrayPrinter implements PrinterAdapter {
       // 3. Prepare Print Payload
       if (settings.qzUseRawEscpos) {
         // --- MODE A: RAW ESC/POS MODE ---
-        // Sends raw graphic raster commands and feed/cut directly to the ESC/POS printer
+        console.log('[QZTrayPrinter] Mengirim pekerjaan via Raw ESC/POS...');
         const config = qz.configs.create(targetPrinter, {
           encoding: 'UTF-8',
           rasterize: true,
@@ -275,9 +290,8 @@ export class QZTrayPrinter implements PrinterAdapter {
 
         await qz.print(config, printData as any);
       } else {
-        // --- MODE B: PIXEL DRIVER MODE (RECOMMENDED DEFAULT) ---
-        // Renders through the Windows Printer Driver for iWare IW D260UL
-        // Guarantees exact sizing, margins, and paper calibration
+        // --- MODE B: PIXEL DRIVER MODE (RECOMMENDED DEFAULT FOR iWare) ---
+        console.log('[QZTrayPrinter] Mengirim pekerjaan via Windows Driver (Raster Pixel)...');
         const printableWidthMm = settings.windowsPrintableWidthMm || 72;
         const pageHeightMm = settings.windowsPageHeightMm || 120;
 
@@ -307,10 +321,10 @@ export class QZTrayPrinter implements PrinterAdapter {
         await qz.print(config, printData as any);
       }
 
-      // 4. Job sent successfully to QZ Tray
-      // Per Section 5 of specification:
-      // Return needsConfirmation: true to trigger physical verification
-      // ("Apakah foto sudah tercetak?") to protect against empty paper roll or physical disconnects.
+      console.log('[QZTrayPrinter] qz.print() berhasil terkirim ke driver printer!');
+
+      // Job successfully handed off to QZ Tray
+      // Needs physical confirmation ("Apakah foto sudah tercetak?") to protect against empty paper
       return {
         success: true,
         needsConfirmation: true,
@@ -318,20 +332,21 @@ export class QZTrayPrinter implements PrinterAdapter {
       };
     } catch (err: unknown) {
       const errorMsg = (err as Error)?.message || String(err);
-      console.error('[QZ Tray] Kesalahan saat mencetak:', err);
+      console.error('[QZTrayPrinter] Gagal mencetak ke QZ Tray:', err);
 
       let fix = 'Periksa apakah kabel USB printer iWare IW D260UL sudah terhubung dan lampu indikator menyala.';
       if (errorMsg.includes('Unable to establish') || errorMsg.includes('WebSocket')) {
-        fix = 'Aplikasi QZ Tray di Windows belum berjalan. Silakan buka QZ Tray dari Start Menu / Desktop.';
+        fix = 'Aplikasi QZ Tray di Windows belum berjalan. Buka QZ Tray dari Start Menu / Taskbar.';
       } else if (errorMsg.includes('not found') || errorMsg.includes('Unknown printer')) {
-        fix = `Printer "${targetPrinter}" tidak ditemukan. Pastikan driver iWare sudah terpasang di Devices and Printers Windows.`;
+        fix = `Printer "${targetPrinter}" tidak ditemukan. Pastikan driver iWare terdaftar di Devices and Printers Windows.`;
       } else if (errorMsg.includes('Permission') || errorMsg.includes('denied') || errorMsg.includes('Blocked')) {
         fix = 'Izin cetak belum disetujui pada dialog QZ Tray. Pilih "Allow" dan centang "Remember this decision".';
       }
 
+      // Enforce strict required error message per Section 2:
       return {
         success: false,
-        errorMessage: `Gagal mencetak otomatis via QZ Tray: ${errorMsg}`,
+        errorMessage: 'Printer tidak terhubung. Silakan panggil petugas.',
         errorFix: fix,
       };
     }

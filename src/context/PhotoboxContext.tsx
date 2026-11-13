@@ -298,14 +298,21 @@ export const PhotoboxProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const printPhoto = useCallback(async () => {
     // Prevent double submission
     if (session.hasPrinted || session.printStatus === 'printing') {
-      console.warn('Pencetakan sudah selesai atau sedang berjalan.');
+      console.warn('[PhotoboxContext] Pencetakan sudah selesai atau sedang berjalan.');
       return;
     }
 
     if (!session.composedPrintBase64) {
-      console.error('Data gambar cetak belum siap.');
+      console.error('[PhotoboxContext] Data gambar cetak belum siap.');
       return;
     }
+
+    // Always fetch fresh persisted settings to avoid any stale React state
+    const currentSettings = loadSettings();
+
+    console.log(
+      `[PhotoboxContext] Memulai proses cetak. Mode: "${currentSettings.printerMode}", Printer: "${currentSettings.qzPrinterName}"`
+    );
 
     setSession((prev) => ({
       ...prev,
@@ -319,12 +326,12 @@ export const PhotoboxProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       base64Image: session.composedPrintBase64,
       previewUrl: session.composedPreviewUrl || '',
       sessionRef: session.sessionId,
-      settings,
+      settings: currentSettings,
     });
 
     if (result.success) {
       if (result.needsConfirmation) {
-        // Desktop Browser Print was opened; wait for user/operator to confirm physical output
+        // Wait for visitor/operator to confirm physical print output ("Apakah foto sudah tercetak?")
         setSession((prev) => ({
           ...prev,
           printStatus: 'confirming',
@@ -340,11 +347,12 @@ export const PhotoboxProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         setScreen('success');
       }
     } else {
+      console.error('[PhotoboxContext] Hasil cetak gagal:', result.errorMessage);
       setSession((prev) => ({
         ...prev,
         printStatus: 'error',
         printErrorMessage:
-          result.errorMessage || 'Printer sedang bermasalah. Silakan panggil petugas.',
+          result.errorMessage || 'Printer tidak terhubung. Silakan panggil petugas.',
         printErrorFix: result.errorFix || null,
       }));
       setScreen('print-error');
@@ -355,7 +363,6 @@ export const PhotoboxProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     session.composedPrintBase64,
     session.composedPreviewUrl,
     session.sessionId,
-    settings,
   ]);
 
   // Operator confirms desktop print was physically successful

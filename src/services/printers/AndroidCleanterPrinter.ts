@@ -42,7 +42,7 @@ export class AndroidCleanterPrinter implements PrinterAdapter {
       if (data.printer?.connected) {
         return {
           ready: true,
-          info: `Cleanter v${data.version || '1.1'} — Printer: ${data.printer.name || 'VSC TM-80D'} (${data.printer.address || 'Bluetooth OK'})`,
+          info: `Cleanter v${data.version || '1.1'} — Printer: ${data.printer.name || 'Printer Bluetooth'} (${data.printer.address || 'Bluetooth OK'})`,
         };
       } else {
         return {
@@ -91,7 +91,7 @@ export class AndroidCleanterPrinter implements PrinterAdapter {
           type: 'image',
           base64: base64Image,
           align: 'center',
-          dither: true, // Use Cleanter Floyd-Steinberg dithering for photographic output
+          dither: false, // The compositor already supplies the final one-bit dotted raster.
         },
         {
           type: 'feed',
@@ -151,14 +151,14 @@ export class AndroidCleanterPrinter implements PrinterAdapter {
         return {
           success: false,
           errorMessage: 'Waktu koneksi pencetakan habis (timeout).',
-          errorFix: 'Periksa apakah printer thermal VSC TM-80D terhubung dan memiliki daya cukup.',
+          errorFix: 'Periksa apakah printer thermal Bluetooth terhubung dan memiliki daya cukup.',
         };
       }
       return {
         success: false,
         errorMessage: 'Gagal menghubungi Cleanter printer bridge.',
         errorFix:
-          'Pastikan aplikasi Cleanter aktif pada Android Samsung A35 dan bluetooth printer sudah tersambung.',
+          'Pastikan aplikasi Cleanter aktif pada HP Android dan bluetooth printer sudah tersambung.',
       };
     }
   }
@@ -168,13 +168,13 @@ export class AndroidCleanterPrinter implements PrinterAdapter {
       case 'bluetooth_permission_missing':
         return 'Izin Bluetooth belum diberikan pada aplikasi Cleanter.';
       case 'bluetooth_disabled':
-        return 'Bluetooth pada ponsel Samsung A35 dalam keadaan nonaktif.';
+        return 'Bluetooth pada ponsel Android dalam keadaan nonaktif.';
       case 'printer_not_connected':
-        return 'Printer VSC TM-80D belum terhubung ke Cleanter.';
+        return 'Printer Bluetooth belum terhubung ke Cleanter.';
       case 'printer_not_paired':
         return 'Printer belum dipasangkan (paired) di pengaturan Bluetooth Android.';
       case 'printer_unreachable':
-        return 'Printer VSC TM-80D tidak merespons. Periksa daya dan kertas.';
+        return 'Printer Bluetooth tidak merespons. Periksa daya dan kertas.';
       default:
         return detail || 'Terjadi gangguan komunikasi dengan printer thermal.';
     }

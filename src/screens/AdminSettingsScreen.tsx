@@ -138,7 +138,7 @@ export const AdminSettingsScreen: React.FC<{ onClose: () => void }> = ({ onClose
         setPrinterHealth({
           status: 'ok',
           version: '1.2.0',
-          printer: { connected: true, name: 'VSC TM-80D' },
+          printer: { connected: true, name: 'Printer Bluetooth' },
         });
       } else {
         setPrinterHealth(null);
@@ -214,7 +214,8 @@ export const AdminSettingsScreen: React.FC<{ onClose: () => void }> = ({ onClose
 
     // Create a compact 576-dot test canvas pattern (72mm at 203 DPI) with zero top margin
     const canvas = document.createElement('canvas');
-    canvas.width = formData.rasterDotWidth || 576;
+    canvas.width = formData.printerMode === 'android-bluetooth' && formData.paperWidth === 58
+      ? 384 : Math.min(576, Math.max(384, Math.floor((formData.rasterDotWidth || 576) / 8) * 8));
     canvas.height = 190;
     const ctx = canvas.getContext('2d');
     if (ctx) {
@@ -232,14 +233,14 @@ export const AdminSettingsScreen: React.FC<{ onClose: () => void }> = ({ onClose
           ? `${formData.qzPrinterName || 'iWare IW D260UL'} (QZ Tray Auto)`
           : formData.printerMode === 'windows-usb'
           ? 'iWare IW D260UL (Windows USB)'
-          : 'VSC TM-80D (Android Bluetooth)';
+          : 'Printer Bluetooth';
       ctx.fillText(`Target: ${targetPrinterName}`, canvas.width / 2, 44);
-      ctx.fillText(`Lebar: ${canvas.width} dots (72 mm) • ${new Date().toLocaleTimeString('id-ID')}`, canvas.width / 2, 66);
+      ctx.fillText(`Lebar: ${canvas.width} dots (${canvas.width / 8} mm) • ${new Date().toLocaleTimeString('id-ID')}`, canvas.width / 2, 66);
 
       // Calibration ruler test bar
       ctx.fillRect(20, 80, canvas.width - 40, 5);
       ctx.font = 'bold 12px sans-serif';
-      ctx.fillText('|<- 0 mm                       576 dots / 72 mm ->|', canvas.width / 2, 102);
+      ctx.fillText(`|< 0 mm — ${canvas.width} dots / ${canvas.width / 8} mm >|`, canvas.width / 2, 102);
 
       // Checkerboard calibration pattern
       const size = 12;
@@ -528,8 +529,8 @@ export const AdminSettingsScreen: React.FC<{ onClose: () => void }> = ({ onClose
                   <span>Android Bluetooth</span>
                 </span>
                 <p className="text-[11px] text-brand-muted leading-relaxed">
-                  • Samsung Galaxy A35<br />
-                  • Printer: <b>VSC TM-80D</b><br />
+                  • HP Android (termasuk Redmi Note 10 Pro)<br />
+                  • Printer: <b>PT210 58mm / thermal 80mm</b><br />
                   • Bridge Cleanter (Port 9100)<br />
                   • Kamera depan selfie (1:1)
                 </p>
@@ -763,7 +764,7 @@ export const AdminSettingsScreen: React.FC<{ onClose: () => void }> = ({ onClose
                   </div>
                   <div>
                     <h3 className="font-bold text-lg text-brand-dark">Koneksi Cleanter Bridge (Port 9100)</h3>
-                    <p className="text-xs text-brand-muted">Target Printer: VSC TM-80D (Bluetooth)</p>
+                    <p className="text-xs text-brand-muted">Target: printer default di Cleanter</p>
                   </div>
                 </div>
 
@@ -780,7 +781,7 @@ export const AdminSettingsScreen: React.FC<{ onClose: () => void }> = ({ onClose
                         <span>Cleanter Bridge Terhubung!</span>
                       </div>
                       <p className="text-xs text-brand-dark">
-                        Printer: <span className="font-semibold">{printerHealth.printer?.name || 'VSC TM-80D'}</span> (Bluetooth OK)
+                        Printer: <span className="font-semibold">{printerHealth.printer?.name || 'Printer Bluetooth'}</span> (Bluetooth OK)
                       </p>
                     </div>
                   ) : printerError ? (
@@ -791,9 +792,9 @@ export const AdminSettingsScreen: React.FC<{ onClose: () => void }> = ({ onClose
                       </div>
                       <p className="text-xs text-brand-muted">{printerError}</p>
                       <div className="p-3 bg-white rounded-lg border border-red-200 text-xs text-brand-dark space-y-1">
-                        <p className="font-semibold">Panduan Samsung Galaxy A35:</p>
+                        <p className="font-semibold">Panduan Android:</p>
                         <p>1. Buka aplikasi Cleanter di Android & pastikan service aktif.</p>
-                        <p>2. Hubungkan Bluetooth dengan printer VSC TM-80D di Cleanter.</p>
+                        <p>2. Hubungkan Bluetooth dengan printer kamu di Cleanter.</p>
                         <p>3. Jika Chrome memunculkan dialog <i>Local Network Permission</i>, pilih <b>Allow / Izinkan</b>.</p>
                       </div>
                     </div>
@@ -1157,6 +1158,29 @@ export const AdminSettingsScreen: React.FC<{ onClose: () => void }> = ({ onClose
                     💡 Gunakan <b>576 dots</b> untuk printer iWare 80mm agar foto pas di tengah dan tidak terpotong memanjang ke bawah.
                   </p>
                 </div>
+
+                {formData.printerMode === 'android-bluetooth' && (
+                  <div className="p-3 bg-blue-50 rounded-xl border border-blue-200 space-y-2">
+                    <p className="font-bold text-sm text-brand-dark">GOOJPRT PT210 — Uji dari HP</p>
+                    <p className="text-xs text-brand-muted">
+                      Kertas 58 mm, area cetak 48 mm (384 dots), tanpa pemotong otomatis.
+                      Pilih PT210 sebagai printer default di Cleanter pada HP yang sama.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setFormData((prev) => ({
+                        ...prev, paperWidth: 58, rasterDotWidth: 384, marginHorizontal: 8,
+                        showHeader: false, headerHeight: 0, showFooter: false, footerHeight: 0,
+                        cutPaper: false, feedLines: 3, mockPrinter: false,
+                        brightness: 1.2, contrast: 0.8,
+                      }))}
+                      className="px-3 py-2 rounded-lg bg-brand-blue text-white text-xs font-bold"
+                    >
+                      Gunakan Preset PT210 (384 dots)
+                    </button>
+                    <p className="text-xs text-brand-muted">Klik Simpan Pengaturan setelah memilih preset.</p>
+                  </div>
+                )}
 
                 {/* Tombol Kalibrasi Cepat 1-Klik */}
                 <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">

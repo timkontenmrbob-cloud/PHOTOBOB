@@ -162,7 +162,8 @@ export async function composePhotoboxLayout(options: ComposeOptions): Promise<Co
   // Print dimensions based on settings
   // Protect against overly wide values (> 576 dots for 80mm thermal roll causes line wrapping/split parts)
   const rawWidth = settings.rasterDotWidth || 576;
-  const printWidth = Math.min(576, Math.max(384, Math.floor(rawWidth / 8) * 8));
+  const maxWidth = settings.printerMode === 'android-bluetooth' && settings.paperWidth === 58 ? 384 : 576;
+  const printWidth = Math.min(maxWidth, Math.max(384, Math.floor(rawWidth / 8) * 8));
 
   // User requirement: HAPUS FOOTER DAN HEADER BIAR OTOMATIS HEMAT KERTAS
   const showHeader = settings.showHeader === true;

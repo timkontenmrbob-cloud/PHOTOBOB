@@ -973,7 +973,10 @@ export const AdminSettingsScreen: React.FC<{ onClose: () => void }> = ({ onClose
             <div className="p-4 rounded-2xl bg-brand-blue-light border border-blue-100 text-sm text-brand-blue">
               <p className="font-bold mb-1">Panduan Penggantian Bingkai Foto:</p>
               <p className="text-xs leading-relaxed text-brand-dark">
-                Unggah gambar berformat <b>PNG dengan background transparan</b>. Ukuran optimal adalah <b>1080 × 1080 piksel (1:1)</b>. Bagian tengah harus bolong/transparan agar wajah pengunjung terlihat. Aset tersimpan permanen di IndexedDB dan dapat digunakan offline.
+                Unggah gambar berformat <b>PNG dengan background transparan</b>. Ukuran frame adalah <b>1080 × 1440 piksel (portrait 3:4)</b>.
+                Buat area foto transparan <b>1080 × 1080 piksel</b> pada posisi <b>X: 0, Y: 90</b>.
+                Tersedia area atas 90 piksel dan bawah 270 piksel untuk watermark atau tulisan.
+                Foto tetap 1:1. Gunakan tulisan hitam yang cukup besar agar terbaca di printer thermal. Aset tersimpan permanen di IndexedDB dan dapat digunakan offline.
               </p>
             </div>
 
@@ -986,7 +989,7 @@ export const AdminSettingsScreen: React.FC<{ onClose: () => void }> = ({ onClose
                     className="bg-white border-2 border-brand-border rounded-2xl p-4 flex items-center gap-4 shadow-sm"
                   >
                     {/* Thumbnail */}
-                    <div className="w-24 h-24 rounded-xl border border-brand-border bg-slate-100 p-1 shrink-0 flex items-center justify-center relative overflow-hidden">
+                    <div className="w-24 aspect-[3/4] rounded-xl border border-brand-border bg-slate-100 p-1 shrink-0 flex items-center justify-center relative overflow-hidden">
                       <img
                         src={previewUrl}
                         alt={frame.name}

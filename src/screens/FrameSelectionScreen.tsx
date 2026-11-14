@@ -44,7 +44,7 @@ export const FrameSelectionScreen: React.FC = () => {
                 }`}
               >
                 {/* Frame Thumbnail Preview */}
-                <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl border border-brand-border bg-slate-50 flex items-center justify-center p-1 overflow-hidden relative shrink-0">
+                <div className="w-20 aspect-[3/4] sm:w-24 rounded-xl border border-brand-border bg-slate-50 flex items-center justify-center p-1 overflow-hidden relative shrink-0">
                   <div className="w-full h-full bg-slate-200/50 rounded flex items-center justify-center relative overflow-hidden">
                     <span className="text-[11px] text-brand-muted font-medium">Foto 1:1</span>
                     <img

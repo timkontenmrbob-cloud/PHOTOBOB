@@ -288,14 +288,18 @@ export const PhotoboxProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           URL.revokeObjectURL(fallbackUrl);
 
           const canvas = document.createElement('canvas');
-          canvas.width = 576;
-          canvas.height = 576;
+          const fallbackSettings = loadSettings();
+          canvas.width = fallbackSettings.printerMode === 'android-bluetooth' && fallbackSettings.paperWidth === 58 ? 384 : 576;
+          canvas.height = Math.round(canvas.width * 4 / 3);
           const ctx = canvas.getContext('2d');
           if (ctx) {
             ctx.fillStyle = '#FFFFFF';
-            ctx.fillRect(0, 0, 576, 576);
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
             ctx.filter = 'grayscale(1)';
-            ctx.drawImage(fallbackImg, 0, 0, 576, 576);
+            const size = Math.min(fallbackImg.naturalWidth, fallbackImg.naturalHeight);
+            ctx.drawImage(fallbackImg,
+              (fallbackImg.naturalWidth - size) / 2, (fallbackImg.naturalHeight - size) / 2, size, size,
+              0, Math.round((canvas.height - canvas.width) / 4), canvas.width, canvas.width);
             ctx.filter = 'none';
           }
           const dataUrl = canvas.toDataURL('image/png');

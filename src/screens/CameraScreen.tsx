@@ -18,6 +18,7 @@ export const CameraScreen: React.FC = () => {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
 
+  const [squareFrame, setSquareFrame] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [countdown, setCountdown] = useState<number | null>(null);
@@ -105,22 +106,23 @@ export const CameraScreen: React.FC = () => {
           </p>
         </div>
 
-        {/* 1:1 Square Camera Container */}
-        <div className="w-full aspect-square max-w-[370px] rounded-2xl overflow-hidden relative bg-black shadow-inner border-2 border-brand-border flex items-center justify-center">
+        {/* Portrait frame around the square selfie */}
+        <div className="w-full aspect-[3/4] max-w-[370px] rounded-2xl overflow-hidden relative bg-white shadow-inner border-2 border-brand-border flex items-center justify-center">
           {/* Camera Video (mirrored for natural selfie view) */}
           <video
             ref={videoRef}
             playsInline
             muted
             autoPlay
-            className="w-full h-full object-cover -scale-x-100"
+            className="absolute left-0 top-[6.25%] w-full aspect-square object-cover -scale-x-100"
           />
 
           {/* Real-time Selected Frame Overlay */}
           <img
             src={frameOverlayUrl}
             alt="Frame Overlay"
-            className="absolute inset-0 w-full h-full object-contain pointer-events-none z-10"
+            onLoad={(e) => setSquareFrame(Math.abs(e.currentTarget.naturalWidth / e.currentTarget.naturalHeight - 1) < 0.01)}
+            className={`absolute left-0 w-full object-contain pointer-events-none z-10 ${squareFrame ? 'top-[6.25%] aspect-square' : 'inset-y-0 h-full'}`}
           />
 
           {/* Loading Indicator */}

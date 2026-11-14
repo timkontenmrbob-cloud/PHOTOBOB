@@ -32,7 +32,7 @@ export const PhotoPreviewScreen: React.FC = () => {
         <div className="w-full max-w-[320px] flex flex-col items-center">
           <div className="w-full bg-white rounded-2xl shadow-md border-2 border-brand-border p-3 overflow-hidden relative transition-all">
             {isComposing || !session.composedPrintBase64 ? (
-              <div className="min-h-[260px] aspect-square w-full flex flex-col items-center justify-center gap-3 bg-brand-blue-light/50 rounded-xl">
+              <div className="min-h-[260px] aspect-[3/4] w-full flex flex-col items-center justify-center gap-3 bg-brand-blue-light/50 rounded-xl">
                 <RefreshCw className="w-10 h-10 text-brand-blue animate-spin" />
                 <p className="text-base font-semibold text-brand-dark">Menyiapkan cetakan...</p>
               </div>

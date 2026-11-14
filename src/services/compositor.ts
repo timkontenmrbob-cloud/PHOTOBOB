@@ -135,7 +135,7 @@ function createThermalDitherSimulation(sourceCanvas: HTMLCanvasElement): string 
 /**
  * Composes the vertical receipt layout:
  * [ HEADER ] (optional, omitted by default to save paper)
- * [ SQUARE PHOTO + FRAME (1:1) ]
+ * [ PORTRAIT FRAME (3:4), SQUARE PHOTO (1:1) ]
  * [ FOOTER ] (optional, omitted by default to save paper)
  */
 export async function composePhotoboxLayout(options: ComposeOptions): Promise<ComposeResult> {
@@ -172,14 +172,16 @@ export async function composePhotoboxLayout(options: ComposeOptions): Promise<Co
   const headerHeight = showHeader ? (settings.headerHeight || 40) : 0;
   const footerHeight = showFooter ? (settings.footerHeight || 70) : 0;
 
-  // Margin horizontal: default 16 dots (~2mm) so photo fits centered without wasting paper
-  const marginX = settings.marginHorizontal !== undefined ? settings.marginHorizontal : 16;
-  const photoSize = printWidth - marginX * 2; // Square 1:1
-  const photoX = Math.round((printWidth - photoSize) / 2); // Perfectly centered horizontally
-
-  // Total canvas height:
-  // When showHeader=false and showFooter=false, totalHeight = photoSize (PURE SQUARE PHOTO, ZERO PAPER WASTE!)
-  const totalHeight = headerHeight + photoSize + footerHeight;
+  // Portrait polaroid: square photo with 1/4 of the extra space above and 3/4 below.
+  const marginX = Math.min(Math.floor(printWidth / 4), Math.max(0, settings.marginHorizontal ?? 16));
+  const frameWidth = printWidth - marginX * 2;
+  const frameHeight = Math.round(frameWidth * 4 / 3);
+  const layoutHeight = Math.round(printWidth * 4 / 3);
+  const frameY = headerHeight + Math.round((layoutHeight - frameHeight) / 2);
+  const photoSize = frameWidth;
+  const photoX = marginX;
+  const photoY = frameY + Math.round((frameHeight - photoSize) / 4);
+  const totalHeight = headerHeight + layoutHeight + footerHeight;
 
   const canvas = document.createElement('canvas');
   canvas.width = printWidth;
@@ -225,8 +227,7 @@ export async function composePhotoboxLayout(options: ComposeOptions): Promise<Co
   }
 
   // 3. Render SQUARE PHOTO (1:1) - Strictly center-cropped so it never stretches or widens
-  // Starts at Y = headerHeight (Y = 0 when header is removed!)
-  const photoY = headerHeight;
+  // Reserve a small top band and a larger bottom band for frame artwork.
   const pW = photoImg.naturalWidth || photoImg.width;
   const pH = photoImg.naturalHeight || photoImg.height;
   const pMin = Math.min(pW, pH);
@@ -234,16 +235,22 @@ export async function composePhotoboxLayout(options: ComposeOptions): Promise<Co
   const pY = Math.round((pH - pMin) / 2);
   ctx.drawImage(photoImg, pX, pY, pMin, pMin, photoX, photoY, photoSize, photoSize);
 
-  // 4. Render FRAME OVERLAY (1:1) - Aligned exactly over the centered photo
+  // 4. Fit the frame without stretching. Existing square frames still align with the photo.
   if (frameImg) {
     const fW = frameImg.naturalWidth || frameImg.width;
     const fH = frameImg.naturalHeight || frameImg.height;
-    ctx.drawImage(frameImg, 0, 0, fW, fH, photoX, photoY, photoSize, photoSize);
+    const isSquare = Math.abs(fW / fH - 1) < 0.01;
+    const scale = Math.min(frameWidth / fW, frameHeight / fH);
+    const drawWidth = isSquare ? photoSize : fW * scale;
+    const drawHeight = isSquare ? photoSize : fH * scale;
+    const drawX = marginX + (frameWidth - drawWidth) / 2;
+    const drawY = isSquare ? photoY : frameY + (frameHeight - drawHeight) / 2;
+    ctx.drawImage(frameImg, 0, 0, fW, fH, drawX, drawY, drawWidth, drawHeight);
   }
 
   // 5. Render FOOTER (Only if showFooter is true and footerHeight > 0)
   if (showFooter && footerHeight > 0) {
-    const footerY = headerHeight + photoSize;
+    const footerY = headerHeight + layoutHeight;
 
     // Thin footer rule centered with the photo
     ctx.strokeStyle = '#141E30';

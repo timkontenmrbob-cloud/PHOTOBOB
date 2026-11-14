@@ -44,6 +44,12 @@ async function generateAssets() {
     .png()
     .toFile(path.join(iconsDir, 'icon-512x512.png'));
 
+  // Portrait polaroid with a square transparent aperture and a larger caption band.
+  const polaroidSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1440" viewBox="0 0 1080 1440">
+    <path d="M0 0H1080V1440H0Z M60 90V1050H1020V90Z" fill="#fff" fill-rule="evenodd"/>
+  </svg>`;
+  await sharp(Buffer.from(polaroidSvg)).png().toFile(path.join(framesDir, 'polaroid.png'));
+
   console.log('Generating Default 1080x1080 Transparent Frames...');
 
   // Frame 1: Classic — Clean, minimal elegant border

@@ -172,15 +172,15 @@ export async function composePhotoboxLayout(options: ComposeOptions): Promise<Co
   const headerHeight = showHeader ? (settings.headerHeight || 40) : 0;
   const footerHeight = showFooter ? (settings.footerHeight || 70) : 0;
 
-  // Portrait polaroid: square photo with 1/4 of the extra space above and 3/4 below.
+  // 1080x1440 polaroid: a 960px square aperture at (60, 90).
   const marginX = Math.min(Math.floor(printWidth / 4), Math.max(0, settings.marginHorizontal ?? 16));
   const frameWidth = printWidth - marginX * 2;
   const frameHeight = Math.round(frameWidth * 4 / 3);
   const layoutHeight = Math.round(printWidth * 4 / 3);
   const frameY = headerHeight + Math.round((layoutHeight - frameHeight) / 2);
-  const photoSize = frameWidth;
-  const photoX = marginX;
-  const photoY = frameY + Math.round((frameHeight - photoSize) / 4);
+  const photoSize = frameWidth * 960 / 1080;
+  const photoX = marginX + frameWidth * 60 / 1080;
+  const photoY = frameY + frameHeight * 90 / 1440;
   const totalHeight = headerHeight + layoutHeight + footerHeight;
 
   const canvas = document.createElement('canvas');

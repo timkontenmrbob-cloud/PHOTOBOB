@@ -974,8 +974,8 @@ export const AdminSettingsScreen: React.FC<{ onClose: () => void }> = ({ onClose
               <p className="font-bold mb-1">Panduan Penggantian Bingkai Foto:</p>
               <p className="text-xs leading-relaxed text-brand-dark">
                 Unggah gambar berformat <b>PNG dengan background transparan</b>. Ukuran frame adalah <b>1080 × 1440 piksel (portrait 3:4)</b>.
-                Buat area foto transparan <b>1080 × 1080 piksel</b> pada posisi <b>X: 0, Y: 90</b>.
-                Tersedia area atas 90 piksel dan bawah 270 piksel untuk watermark atau tulisan.
+                Buat area foto transparan <b>960 × 960 piksel</b> pada posisi <b>X: 60, Y: 90</b>.
+                Margin kiri/kanan 60 piksel, atas 90 piksel, dan bawah 390 piksel untuk watermark atau tulisan.
                 Foto tetap 1:1. Gunakan tulisan hitam yang cukup besar agar terbaca di printer thermal. Aset tersimpan permanen di IndexedDB dan dapat digunakan offline.
               </p>
             </div>

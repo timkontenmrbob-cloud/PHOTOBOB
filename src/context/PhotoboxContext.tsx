@@ -26,8 +26,8 @@ const DEFAULT_FRAMES: FrameItem[] = [
   {
     id: 'frame-1',
     name: 'Bingkai 1',
-    styleName: 'Classic',
-    defaultUrl: '/frames/frame-1.png',
+    styleName: 'Polaroid',
+    defaultUrl: '/frames/polaroid.png',
   },
   {
     id: 'frame-2',
@@ -299,7 +299,8 @@ export const PhotoboxProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             const size = Math.min(fallbackImg.naturalWidth, fallbackImg.naturalHeight);
             ctx.drawImage(fallbackImg,
               (fallbackImg.naturalWidth - size) / 2, (fallbackImg.naturalHeight - size) / 2, size, size,
-              0, Math.round((canvas.height - canvas.width) / 4), canvas.width, canvas.width);
+              canvas.width * 60 / 1080, canvas.height * 90 / 1440,
+              canvas.width * 960 / 1080, canvas.width * 960 / 1080);
             ctx.filter = 'none';
           }
           const dataUrl = canvas.toDataURL('image/png');

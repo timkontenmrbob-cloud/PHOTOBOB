@@ -45,8 +45,8 @@ export const FrameSelectionScreen: React.FC = () => {
               >
                 {/* Frame Thumbnail Preview */}
                 <div className="w-20 aspect-[3/4] sm:w-24 rounded-xl border border-brand-border bg-slate-50 flex items-center justify-center p-1 overflow-hidden relative shrink-0">
-                  <div className="w-full h-full bg-slate-200/50 rounded flex items-center justify-center relative overflow-hidden">
-                    <span className="text-[11px] text-brand-muted font-medium">Foto 1:1</span>
+                  <div className="w-full h-full bg-white rounded flex items-center justify-center relative overflow-hidden">
+                    <span className="absolute left-[5.555556%] top-[6.25%] w-[88.888889%] aspect-square bg-slate-200/50 flex items-center justify-center text-[11px] text-brand-muted font-medium">Foto 1:1</span>
                     <img
                       src={previewUrl}
                       alt={frame.name}
@@ -67,7 +67,7 @@ export const FrameSelectionScreen: React.FC = () => {
                   </div>
                   <p className="text-sm text-brand-muted mt-0.5">
                     {index === 0
-                      ? 'Gaya minimal & elegan'
+                      ? 'Polaroid putih, ruang tulisan di bawah'
                       : index === 1
                       ? 'Gaya klasik retro film'
                       : 'Gaya ceria bintang & polkadot'}

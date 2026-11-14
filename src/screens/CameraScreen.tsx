@@ -114,7 +114,7 @@ export const CameraScreen: React.FC = () => {
             playsInline
             muted
             autoPlay
-            className="absolute left-0 top-[6.25%] w-full aspect-square object-cover -scale-x-100"
+            className="absolute left-[5.555556%] top-[6.25%] w-[88.888889%] aspect-square object-cover -scale-x-100"
           />
 
           {/* Real-time Selected Frame Overlay */}
@@ -122,7 +122,7 @@ export const CameraScreen: React.FC = () => {
             src={frameOverlayUrl}
             alt="Frame Overlay"
             onLoad={(e) => setSquareFrame(Math.abs(e.currentTarget.naturalWidth / e.currentTarget.naturalHeight - 1) < 0.01)}
-            className={`absolute left-0 w-full object-contain pointer-events-none z-10 ${squareFrame ? 'top-[6.25%] aspect-square' : 'inset-y-0 h-full'}`}
+            className={`absolute object-contain pointer-events-none z-10 ${squareFrame ? 'left-[5.555556%] top-[6.25%] w-[88.888889%] aspect-square' : 'left-0 w-full inset-y-0 h-full'}`}
           />
 
           {/* Loading Indicator */}

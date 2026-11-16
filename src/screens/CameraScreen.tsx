@@ -39,7 +39,7 @@ export const CameraScreen: React.FC = () => {
     } catch (err: unknown) {
       const error = err as Error;
       setIsLoading(false);
-      setErrorMessage(error.message || 'Kamera depan tidak dapat diakses.');
+      setErrorMessage(error.message || 'Kamera tidak dapat diakses.');
     }
   };
 
@@ -99,7 +99,7 @@ export const CameraScreen: React.FC = () => {
         {/* Title & Instruction */}
         <div className="text-center mb-3">
           <h1 className="text-2xl sm:text-3xl font-extrabold text-brand-dark tracking-tight mb-1">
-            Siap-Siap Foto!
+            Siapkan Pose Terbaikmu!
           </h1>
           <p className="text-[17px] text-brand-muted">
             Lihat kamera, lalu tekan tombol di bawah.
@@ -178,7 +178,14 @@ export const CameraScreen: React.FC = () => {
           className="w-full h-[64px] bg-brand-blue hover:bg-brand-blue-hover active:scale-[0.98] disabled:opacity-50 text-white font-semibold text-[20px] rounded-2xl flex items-center justify-center gap-3 transition-all duration-150 shadow-sm"
         >
           <Camera className="w-6 h-6 stroke-[2.2]" />
-          <span>{countdown !== null ? `MENGAMBIL... (${countdown})` : 'AMBIL FOTO'}</span>
+          <span className="text-center leading-tight">
+            {countdown !== null ? (
+              <>
+                <span className="block text-sm sm:text-base">TUNJUKKAN POSE TERBAIKMU</span>
+                <span className="block text-lg">({countdown})</span>
+              </>
+            ) : 'AMBIL FOTO'}
+          </span>
         </button>
 
         <button

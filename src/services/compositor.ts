@@ -1,8 +1,10 @@
 import { AdminSettings } from '../types';
+import { getFramePhotoArea } from './frameLayout';
 
 export interface ComposeOptions {
   photoBlob: Blob;
   frameUrl: string;
+  frameId?: string;
   settings: AdminSettings;
   sessionRef: string;
   dateTimeStr?: string;
@@ -176,15 +178,16 @@ export async function composePhotoboxLayout(options: ComposeOptions): Promise<Co
   const headerHeight = showHeader ? (settings.headerHeight || 40) * layoutScale : 0;
   const footerHeight = showFooter ? (settings.footerHeight || 70) * layoutScale : 0;
 
-  // 1080x1440 polaroid: a 960px square aperture at (60, 90).
-  const marginX = Math.min(Math.floor(printWidth / 4), Math.max(0, (settings.marginHorizontal ?? 16) * layoutScale));
+  // Digital files keep the exact design coordinates; print margins apply only to paper.
+  const area = getFramePhotoArea(options.frameId);
+  const marginX = options.digital ? 0 : Math.min(Math.floor(printWidth / 4), Math.max(0, (settings.marginHorizontal ?? 16) * layoutScale));
   const frameWidth = printWidth - marginX * 2;
   const frameHeight = Math.round(frameWidth * 4 / 3);
   const layoutHeight = Math.round(printWidth * 4 / 3);
   const frameY = headerHeight + Math.round((layoutHeight - frameHeight) / 2);
-  const photoSize = frameWidth * 960 / 1080;
-  const photoX = marginX + frameWidth * 60 / 1080;
-  const photoY = frameY + frameHeight * 90 / 1440;
+  const photoSize = frameWidth * area.size / 1080;
+  const photoX = marginX + frameWidth * area.x / 1080;
+  const photoY = frameY + frameHeight * area.y / 1440;
   const totalHeight = headerHeight + layoutHeight + footerHeight;
 
   const canvas = document.createElement('canvas');

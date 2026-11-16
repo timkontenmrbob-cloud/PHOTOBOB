@@ -2,6 +2,7 @@ import React from 'react';
 import { Check, ArrowRight, ArrowLeft } from 'lucide-react';
 import { usePhotobox } from '../context/PhotoboxContext';
 import { Header } from '../components/Header';
+import { getFramePhotoArea } from '../services/frameLayout';
 
 export const FrameSelectionScreen: React.FC = () => {
   const {
@@ -32,6 +33,7 @@ export const FrameSelectionScreen: React.FC = () => {
           {frames.map((frame, index) => {
             const isSelected = selectedFrame.id === frame.id;
             const previewUrl = frame.customDataUrl || frame.defaultUrl;
+            const photoArea = getFramePhotoArea(frame.id);
 
             return (
               <button
@@ -46,7 +48,7 @@ export const FrameSelectionScreen: React.FC = () => {
                 {/* Frame Thumbnail Preview */}
                 <div className="w-20 aspect-[3/4] sm:w-24 rounded-xl border border-brand-border bg-slate-50 flex items-center justify-center p-1 overflow-hidden relative shrink-0">
                   <div className="w-full h-full bg-white rounded flex items-center justify-center relative overflow-hidden">
-                    <span className="absolute left-[5.555556%] top-[6.25%] w-[88.888889%] aspect-square bg-slate-200/50 flex items-center justify-center text-[11px] text-brand-muted font-medium">Frame Foto Kotak</span>
+                    <span style={{ left: `${photoArea.x / 1080 * 100}%`, top: `${photoArea.y / 1440 * 100}%`, width: `${photoArea.size / 1080 * 100}%` }} className="absolute aspect-square bg-slate-200/50 flex items-center justify-center text-[11px] text-brand-muted font-medium">Frame Foto Kotak</span>
                     <img
                       src={previewUrl}
                       alt={frame.name}

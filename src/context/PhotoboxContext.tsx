@@ -20,6 +20,7 @@ import {
   getAllCustomFrames,
 } from '../services/db';
 import { composePhotoboxLayout } from '../services/compositor';
+import { getFramePhotoArea } from '../services/frameLayout';
 import { printerService } from '../services/printer';
 import { wakeLockService } from '../services/wakelock';
 
@@ -274,6 +275,7 @@ export const PhotoboxProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         const result = await composePhotoboxLayout({
           photoBlob,
           frameUrl,
+          frameId: activeFrame.id,
           settings: freshSettings,
           sessionRef: session.sessionId,
         });
@@ -307,10 +309,11 @@ export const PhotoboxProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             ctx.fillRect(0, 0, canvas.width, canvas.height);
             ctx.filter = 'grayscale(1)';
             const size = Math.min(fallbackImg.naturalWidth, fallbackImg.naturalHeight);
+            const area = getFramePhotoArea(activeFrame.id);
             ctx.drawImage(fallbackImg,
               (fallbackImg.naturalWidth - size) / 2, (fallbackImg.naturalHeight - size) / 2, size, size,
-              canvas.width * 60 / 1080, canvas.height * 90 / 1440,
-              canvas.width * 960 / 1080, canvas.width * 960 / 1080);
+              canvas.width * area.x / 1080, canvas.height * area.y / 1440,
+              canvas.width * area.size / 1080, canvas.width * area.size / 1080);
             ctx.filter = 'none';
           }
           const dataUrl = canvas.toDataURL('image/png');
@@ -389,6 +392,7 @@ export const PhotoboxProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       void queuePhotoShare({
         photoBlob: session.capturedPhotoBlob,
         frameUrl: frame.customDataUrl || frame.defaultUrl,
+        frameId: frame.id,
         settings: currentSettings,
         sessionRef: sessionId,
       }, session.createdAt).then(job => {

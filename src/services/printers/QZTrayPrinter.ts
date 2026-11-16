@@ -253,7 +253,7 @@ export class QZTrayPrinter implements PrinterAdapter {
           options: {
             language: 'escpos',
             imageEncoding: 'gs_v_0', // Native 203 DPI raster bit image: perfect 1:1 pixel fidelity
-            quantization: 'black', // Black-pixel luminance quantization: maps pure 1-bit dithered image directly without solid black alpha bug
+            quantization: 'dither', // Convert grayscale to the one-bit format required by the thermal printhead.
             threshold: 128,
           },
         },

@@ -1177,7 +1177,7 @@ export const AdminSettingsScreen: React.FC<{ onClose: () => void }> = ({ onClose
                         ...prev, paperWidth: 58, rasterDotWidth: 384, marginHorizontal: 8,
                         showHeader: false, headerHeight: 0, showFooter: false, footerHeight: 0,
                         cutPaper: false, feedLines: 3, mockPrinter: false,
-                        brightness: 1.2, contrast: 0.8,
+                        brightness: 1, contrast: 1,
                       }))}
                       className="px-3 py-2 rounded-lg bg-brand-blue text-white text-xs font-bold"
                     >
@@ -1308,48 +1308,8 @@ export const AdminSettingsScreen: React.FC<{ onClose: () => void }> = ({ onClose
                 </div>
 
                 <p className="text-xs text-brand-muted">
-                  Preview dan QZ memakai gambar dengan pola titik teratur yang sama. Hasil fisik tetap perlu diuji.
-                  Naikkan kecerahan untuk hasil lebih terang. Turunkan kontras di bawah 1,00 untuk bayangan lebih lembut.
+                  Foto menggunakan hitam putih natural, tanpa efek titik, perubahan kecerahan, atau kontras tambahan.
                 </p>
-                <button
-                  type="button"
-                  onClick={() => setFormData((prev) => ({ ...prev, brightness: 1.2, contrast: 0.8 }))}
-                  className="w-full rounded-xl border border-brand-border px-3 py-2 text-sm font-semibold text-brand-blue hover:bg-brand-blue-light transition-colors"
-                >
-                  Cetak Lebih Lembut (Terang 1,20 · Kontras 0,80)
-                </button>
-                <p className="text-xs text-brand-muted">
-                  Setelah memilih, klik Simpan Pengaturan lalu ambil foto baru untuk uji cetak.
-                </p>
-                <div>
-                  <label className="block font-semibold text-brand-dark mb-1">
-                    Kecerahan Cetak: {formData.brightness.toFixed(2)}x
-                  </label>
-                  <input
-                    type="range"
-                    min="0.8"
-                    max="1.4"
-                    step="0.05"
-                    value={formData.brightness}
-                    onChange={(e) => setFormData({ ...formData, brightness: parseFloat(e.target.value) })}
-                    className="w-full accent-brand-blue"
-                  />
-                </div>
-
-                <div>
-                  <label className="block font-semibold text-brand-dark mb-1">
-                    Kontras Cetak: {formData.contrast.toFixed(2)}x
-                  </label>
-                  <input
-                    type="range"
-                    min="0.6"
-                    max="1.8"
-                    step="0.05"
-                    value={formData.contrast}
-                    onChange={(e) => setFormData({ ...formData, contrast: parseFloat(e.target.value) })}
-                    className="w-full accent-brand-blue"
-                  />
-                </div>
               </div>
 
               {/* Advanced Settings Toggle */}

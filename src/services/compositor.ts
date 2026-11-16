@@ -13,7 +13,7 @@ export interface ComposeOptions {
 
 export interface ComposeResult {
   previewUrl: string; // Object URL for on-screen preview
-  thermalPreviewUrl: string; // Object URL showing simulated thermal dithering
+  thermalPreviewUrl: string; // Grayscale PNG for preview and printer input
   cleanterBase64: string; // Raw base64 PNG without data URL prefix for Cleanter
   width: number;
   height: number;
@@ -54,41 +54,6 @@ export function formatIndonesianDate(date = new Date()): string {
   return date.toLocaleDateString('id-ID', options).replace(/\./g, ':');
 }
 
-/**
- * Adjusts brightness and contrast of imageData
- */
-function applyBrightnessContrast(
-  ctx: CanvasRenderingContext2D,
-  width: number,
-  height: number,
-  brightness: number,
-  contrast: number
-) {
-  const imgData = ctx.getImageData(0, 0, width, height);
-  const data = imgData.data;
-
-  // contrast multiplier: c > 1 increases contrast
-  const c = contrast;
-  const b = (brightness - 1.0) * 255;
-
-  for (let i = 0; i < data.length; i += 4) {
-    // Keep blank paper white when lowering contrast, avoiding ink in the margins.
-    if (data[i] === 255 && data[i + 1] === 255 && data[i + 2] === 255) continue;
-    // Red
-    let r = (data[i] - 128) * c + 128 + b;
-    // Green
-    let g = (data[i + 1] - 128) * c + 128 + b;
-    // Blue
-    let bCol = (data[i + 2] - 128) * c + 128 + b;
-
-    data[i] = Math.min(255, Math.max(0, r));
-    data[i + 1] = Math.min(255, Math.max(0, g));
-    data[i + 2] = Math.min(255, Math.max(0, bCol));
-  }
-
-  ctx.putImageData(imgData, 0, 0);
-}
-
 /** Convert the preview to plain grayscale without changing its tonal range. */
 function applyGrayscale(ctx: CanvasRenderingContext2D, width: number, height: number) {
   const image = ctx.getImageData(0, 0, width, height);
@@ -99,42 +64,6 @@ function applyGrayscale(ctx: CanvasRenderingContext2D, width: number, height: nu
     image.data[i] = image.data[i + 1] = image.data[i + 2] = value;
   }
   ctx.putImageData(image, 0, 0);
-}
-
-/**
- * Regular clustered halftone dots at the printer's native resolution.
- * Unlike error diffusion, the repeating screen keeps midtones in distinct dots.
- */
-function createThermalDitherSimulation(sourceCanvas: HTMLCanvasElement): string {
-  const canvas = document.createElement('canvas');
-  canvas.width = sourceCanvas.width;
-  canvas.height = sourceCanvas.height;
-  const ctx = canvas.getContext('2d');
-  if (!ctx) throw new Error('Gagal menyiapkan pola titik untuk cetak thermal.');
-
-  ctx.drawImage(sourceCanvas, 0, 0);
-  const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-  const data = imgData.data;
-  // A 4x4 clustered screen grows each dot from its center (0.5 mm at 203 DPI).
-  const screen = [
-    [12, 5, 6, 13],
-    [4, 0, 1, 7],
-    [11, 3, 2, 8],
-    [15, 10, 9, 14],
-  ];
-  for (let y = 0; y < canvas.height; y++) {
-    for (let x = 0; x < canvas.width; x++) {
-      const i = (y * canvas.width + x) * 4;
-      const gray = data[i] * 0.2126 + data[i + 1] * 0.7152 + data[i + 2] * 0.0722;
-      const coverage = (255 - gray) / 255;
-      const threshold = (screen[y % 4][x % 4] + 0.5) / 16;
-      const value = coverage > threshold ? 0 : 255;
-      data[i] = data[i + 1] = data[i + 2] = value;
-      data[i + 3] = 255;
-    }
-  }
-  ctx.putImageData(imgData, 0, 0);
-  return canvas.toDataURL('image/png');
 }
 
 /**
@@ -301,28 +230,13 @@ export async function composePhotoboxLayout(options: ComposeOptions): Promise<Co
     return { previewUrl: '', thermalPreviewUrl: '', cleanterBase64: '', width: printWidth, height: totalHeight, colorBlob, bwBlob };
   }
 
-  // Preview and print share the same grayscale and tonal adjustments.
+  // Preserve natural tones: grayscale only, with no cosmetic processing.
   applyGrayscale(ctx, printWidth, totalHeight);
-
-  // 6. Apply calibration before exporting either preview or print.
-  if (settings.brightness !== 1.0 || settings.contrast !== 1.0) {
-    applyBrightnessContrast(
-      ctx,
-      printWidth,
-      totalHeight,
-      settings.brightness,
-      settings.contrast
-    );
-  }
-
-  // The thermal printer requires one-bit output to represent those tones as dots.
-  const thermalPreviewUrl = createThermalDitherSimulation(canvas);
-
-  // Export raw base64 PNG from the dithered image for Cleanter & QZ Tray
+  const thermalPreviewUrl = canvas.toDataURL('image/png');
   const cleanterBase64 = thermalPreviewUrl.replace(/^data:image\/png;base64,/, '');
 
   return {
-    previewUrl: thermalPreviewUrl, // Show the exact dotted raster sent to the printer.
+    previewUrl: thermalPreviewUrl, // Plain grayscale; hardware conversion happens in the printer adapter.
     thermalPreviewUrl,
     cleanterBase64,
     width: printWidth,

@@ -91,7 +91,7 @@ export class AndroidCleanterPrinter implements PrinterAdapter {
           type: 'image',
           base64: base64Image,
           align: 'center',
-          dither: false, // The compositor already supplies the final one-bit dotted raster.
+          dither: true, // Convert natural grayscale to the thermal printhead format only when printing.
         },
         {
           type: 'feed',

@@ -55,7 +55,7 @@ export const SuccessScreen: React.FC = () => {
 
         {/* Subtitle */}
         <p className="text-[19px] leading-relaxed text-brand-muted max-w-xs mb-8">
-          Terima kasih! Jangan lupa ambil fotomu di mulut printer ya.
+          Terima kasih! Jangan lupa ambil fotomu dan share moment spesialmu!
         </p>
 
         <PhotoSharePanel />

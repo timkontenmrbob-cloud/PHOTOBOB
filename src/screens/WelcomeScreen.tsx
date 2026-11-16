@@ -18,18 +18,18 @@ export const WelcomeScreen: React.FC = () => {
 
         {/* Heading */}
         <h1 className="text-3xl sm:text-4xl font-extrabold text-brand-dark tracking-tight mb-3">
-          Yuk, Foto Dulu!
+          Foto & Abadikan Momentmu!
         </h1>
 
         {/* Subtitle */}
         <p className="text-[19px] leading-relaxed text-brand-muted max-w-xs mb-10">
-          Pilih bingkai, ambil foto, lalu cetak kenanganmu.
+          Pilih bingkai, foto, cetak, & share kenanganmu.
         </p>
 
         {/* Instruction Badge */}
         <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-brand-blue-light text-brand-blue font-medium text-base mb-8">
           <span>✨</span>
-          <span>Gratis 1 Lembar Cetak Thermal</span>
+          <span>Free 1 Lembar Foto Cetak</span>
         </div>
       </main>
 

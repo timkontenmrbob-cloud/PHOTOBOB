@@ -53,10 +53,10 @@ export const PrintingScreen: React.FC = () => {
             </div>
 
             <h1 className="text-2xl sm:text-3xl font-extrabold text-brand-dark tracking-tight mb-2">
-              Bantuan Petugas
+              Bantuan Team
             </h1>
             <p className="text-[18px] text-brand-muted max-w-xs mb-6">
-              Fotomu tetap tersimpan aman. Silakan panggil petugas photobox untuk memeriksa printer.
+              Fotomu tetap tersimpan aman. Silakan panggil team untuk membantumu.
             </p>
 
             <div className="p-4 rounded-2xl bg-gray-50 border border-brand-border text-xs text-brand-muted text-left w-full space-y-1 mb-6">
@@ -98,7 +98,7 @@ export const PrintingScreen: React.FC = () => {
               Apakah foto sudah tercetak?
             </h1>
             <p className="text-[18px] leading-relaxed text-brand-muted max-w-xs mb-6">
-              Periksa mulut printer{' '}
+              Periksa printer{' '}
               <span className="font-semibold text-brand-dark">
                 {settings.printerMode === 'windows-qz'
                   ? (settings.qzPrinterName || 'iWare IW D260UL')
@@ -111,8 +111,8 @@ export const PrintingScreen: React.FC = () => {
 
             <div className="p-4 rounded-2xl bg-gray-50 border border-brand-border text-xs text-brand-muted text-left w-full space-y-1 mb-4">
               <p className="font-semibold text-brand-dark">Petunjuk:</p>
-              <p>• Tekan <b>"YA, SUDAH TERCETAK"</b> jika kertas struk sudah keluar rapi.</p>
-              <p>• Tekan <b>"BELUM, PANGGIL PETUGAS"</b> jika kertas belum keluar atau terjadi kendala.</p>
+              <p>• Tekan <b>"YA, SUDAH TERCETAK"</b> jika fotomu sudah tercetak.</p>
+              <p>• Tekan <b>"BELUM, PANGGIL TEAM"</b> jika fotomu belum tercetak atau terjadi kendala.</p>
             </div>
           </div>
         ) : !isError ? (
@@ -131,7 +131,7 @@ export const PrintingScreen: React.FC = () => {
               Foto Sedang Dicetak
             </h1>
             <p className="text-[19px] leading-relaxed text-brand-muted max-w-xs mb-8">
-              Mohon tunggu sebentar, ya. Printer sedang memproses fotomu.
+              Mohon tunggu sebentar, ya. Fotomu sedang dicetak.
             </p>
 
             {/* Status Pill */}
@@ -159,7 +159,7 @@ export const PrintingScreen: React.FC = () => {
               Printer Sedang Bermasalah
             </h1>
             <p className="text-[18px] text-brand-muted max-w-xs mb-6">
-              Silakan panggil petugas untuk membantu.
+              Silakan panggil team untuk membantu.
             </p>
 
             {/* Error Message Box */}
@@ -241,7 +241,7 @@ export const PrintingScreen: React.FC = () => {
             className="w-full h-[56px] bg-white hover:bg-gray-50 active:bg-gray-100 text-brand-muted font-semibold text-[17px] rounded-xl flex items-center justify-center gap-2 transition-colors border-2 border-brand-border"
           >
             <AlertTriangle className="w-5 h-5 text-amber-500" />
-            <span>BELUM, PANGGIL PETUGAS</span>
+            <span>BELUM, PANGGIL TEAM</span>
           </button>
         </footer>
       ) : isError ? (

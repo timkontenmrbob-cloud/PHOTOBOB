@@ -51,7 +51,7 @@ export const AdminPinModal: React.FC<AdminPinModalProps> = ({
         </div>
 
         <p className="text-sm text-brand-muted mb-6">
-          Masukkan 4 digit PIN admin untuk membuka pengaturan kiosk. (Default: 1234)
+          Masukkan 4 digit PIN admin untuk membuka pengaturan kiosk.
         </p>
 
         <form onSubmit={handleVerify} className="space-y-4">

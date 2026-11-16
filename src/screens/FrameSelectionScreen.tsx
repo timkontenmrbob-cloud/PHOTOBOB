@@ -20,10 +20,10 @@ export const FrameSelectionScreen: React.FC = () => {
         {/* Title & Instruction */}
         <div className="text-center mb-6">
           <h1 className="text-2xl sm:text-3xl font-extrabold text-brand-dark tracking-tight mb-2">
-            Pilih Bingkai Foto
+            Pilih Frame Fotomu
           </h1>
           <p className="text-[18px] text-brand-muted">
-            Pilih satu bingkai yang kamu suka.
+            Pilih 1 Frame yang Kamu Suka
           </p>
         </div>
 
@@ -46,7 +46,7 @@ export const FrameSelectionScreen: React.FC = () => {
                 {/* Frame Thumbnail Preview */}
                 <div className="w-20 aspect-[3/4] sm:w-24 rounded-xl border border-brand-border bg-slate-50 flex items-center justify-center p-1 overflow-hidden relative shrink-0">
                   <div className="w-full h-full bg-white rounded flex items-center justify-center relative overflow-hidden">
-                    <span className="absolute left-[5.555556%] top-[6.25%] w-[88.888889%] aspect-square bg-slate-200/50 flex items-center justify-center text-[11px] text-brand-muted font-medium">Foto 1:1</span>
+                    <span className="absolute left-[5.555556%] top-[6.25%] w-[88.888889%] aspect-square bg-slate-200/50 flex items-center justify-center text-[11px] text-brand-muted font-medium">Frame Foto Kotak</span>
                     <img
                       src={previewUrl}
                       alt={frame.name}
@@ -65,13 +65,9 @@ export const FrameSelectionScreen: React.FC = () => {
                       {frame.styleName}
                     </span>
                   </div>
-                  <p className="text-sm text-brand-muted mt-0.5">
-                    {index === 0
-                      ? 'Polaroid putih, ruang tulisan di bawah'
-                      : index === 1
-                      ? 'Gaya klasik retro film'
-                      : 'Gaya ceria bintang & polkadot'}
-                  </p>
+                  {index === 0 && (
+                    <p className="text-sm text-brand-muted mt-0.5">Frame Foto Polaroid</p>
+                  )}
                 </div>
 
                 {/* Selection Checkmark Indicator */}

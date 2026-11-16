@@ -104,3 +104,7 @@ vercel
 3. [Panduan Setup Samsung Galaxy A35 (Kiosk Mode)](./SAMSUNG_A35_SETUP.md)
 4. [Panduan Kalibrasi Printer VSC TM-80D](./VSC_TM80D_CALIBRATION.md)
 5. [Daftar Periksa Pengujian Fisik (Checklist)](./TESTING_CHECKLIST.md)
+
+## Download foto via QR
+
+Dua versi JPG (hitam putih dan full color), link unik per sesi, akses 30 hari, antrean upload offline, dan cleanup Supabase. Lihat [QR_DOWNLOAD_SETUP.md](./QR_DOWNLOAD_SETUP.md) untuk aktivasi penyimpanan, Edge Function, jadwal cleanup, dan pengaturan kiosk.

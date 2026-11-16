@@ -6,3 +6,7 @@ dist-ssr
 *.pem
 .DS_Store
 .system_generated
+
+.env
+.env.*
+!.env.example

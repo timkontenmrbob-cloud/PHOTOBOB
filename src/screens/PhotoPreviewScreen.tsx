@@ -1,3 +1,4 @@
+import { PhotoSharePanel } from '../components/PhotoSharePanel';
 import React from 'react';
 import { Printer, RotateCcw, RefreshCw } from 'lucide-react';
 import { usePhotobox } from '../context/PhotoboxContext';
@@ -55,6 +56,7 @@ export const PhotoPreviewScreen: React.FC = () => {
 
         </div>
 
+        {(session.shareId || session.shareError) && <PhotoSharePanel />}
         <div className="h-2" />
       </main>
 

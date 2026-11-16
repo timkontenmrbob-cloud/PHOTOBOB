@@ -163,6 +163,8 @@ export interface PrinterAdapter {
 }
 
 export interface VisitorSession {
+  shareId?: string;
+  shareError?: string;
   sessionId: string;
   selectedFrameId: string;
   capturedPhotoBlob: Blob | null;

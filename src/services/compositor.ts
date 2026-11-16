@@ -6,6 +6,7 @@ export interface ComposeOptions {
   settings: AdminSettings;
   sessionRef: string;
   dateTimeStr?: string;
+  digital?: boolean;
 }
 
 export interface ComposeResult {
@@ -14,6 +15,8 @@ export interface ComposeResult {
   cleanterBase64: string; // Raw base64 PNG without data URL prefix for Cleanter
   width: number;
   height: number;
+  colorBlob?: Blob;
+  bwBlob?: Blob;
 }
 
 /**
@@ -163,17 +166,18 @@ export async function composePhotoboxLayout(options: ComposeOptions): Promise<Co
   // Protect against overly wide values (> 576 dots for 80mm thermal roll causes line wrapping/split parts)
   const rawWidth = settings.rasterDotWidth || 576;
   const maxWidth = settings.printerMode === 'android-bluetooth' && settings.paperWidth === 58 ? 384 : 576;
-  const printWidth = Math.min(maxWidth, Math.max(384, Math.floor(rawWidth / 8) * 8));
+  const printWidth = options.digital ? 1080 : Math.min(maxWidth, Math.max(384, Math.floor(rawWidth / 8) * 8));
+  const layoutScale = options.digital ? 1080 / 576 : 1;
 
   // User requirement: HAPUS FOOTER DAN HEADER BIAR OTOMATIS HEMAT KERTAS
   const showHeader = settings.showHeader === true;
   const showFooter = settings.showFooter === true;
 
-  const headerHeight = showHeader ? (settings.headerHeight || 40) : 0;
-  const footerHeight = showFooter ? (settings.footerHeight || 70) : 0;
+  const headerHeight = showHeader ? (settings.headerHeight || 40) * layoutScale : 0;
+  const footerHeight = showFooter ? (settings.footerHeight || 70) * layoutScale : 0;
 
   // 1080x1440 polaroid: a 960px square aperture at (60, 90).
-  const marginX = Math.min(Math.floor(printWidth / 4), Math.max(0, settings.marginHorizontal ?? 16));
+  const marginX = Math.min(Math.floor(printWidth / 4), Math.max(0, (settings.marginHorizontal ?? 16) * layoutScale));
   const frameWidth = printWidth - marginX * 2;
   const frameHeight = Math.round(frameWidth * 4 / 3);
   const layoutHeight = Math.round(printWidth * 4 / 3);
@@ -281,6 +285,17 @@ export async function composePhotoboxLayout(options: ComposeOptions): Promise<Co
       ctx.fillStyle = '#475569';
       ctx.fillText(subFooter, printWidth / 2, footerY + 58);
     }
+  }
+
+  // Digital exports retain camera colors and skip thermal brightness/dithering.
+  if (options.digital) {
+    const jpeg = () => new Promise<Blob>((resolve, reject) => {
+      canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('Gagal menyiapkan foto download.')), 'image/jpeg', 0.88);
+    });
+    const colorBlob = await jpeg();
+    applyGrayscale(ctx, printWidth, totalHeight);
+    const bwBlob = await jpeg();
+    return { previewUrl: '', thermalPreviewUrl: '', cleanterBase64: '', width: printWidth, height: totalHeight, colorBlob, bwBlob };
   }
 
   // Preview and print share the same grayscale and tonal adjustments.

@@ -7,12 +7,14 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "signer": "node scripts/qz-signer.js"
+    "signer": "node scripts/qz-signer.js",
+    "test:sharing": "node --test tests/photo-share-*.test.mjs"
   },
   "dependencies": {
     "canvas-confetti": "^1.9.4",
     "idb": "^8.0.2",
     "lucide-react": "^1.16.0",
+    "qrcode-generator": "file:vendor/qrcode-generator-2.0.4.tgz",
     "qz-tray": "^2.3.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"

@@ -1,6 +1,18 @@
 import { openDB, DBSchema, IDBPDatabase } from 'idb';
 
+export interface PhotoShareJob {
+  id: string;
+  sessionId: string;
+  colorBlob?: Blob;
+  bwBlob?: Blob;
+  createdAt: number;
+  expiresAt: number;
+  status: 'queued' | 'ready';
+  error?: string;
+}
+
 interface PhotoboxDB extends DBSchema {
+  shares: { key: string; value: PhotoShareJob };
   frames: {
     key: string;
     value: {
@@ -12,7 +24,7 @@ interface PhotoboxDB extends DBSchema {
 }
 
 const DB_NAME = 'photobox_db';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 let dbPromise: Promise<IDBPDatabase<PhotoboxDB>> | null = null;
 
@@ -20,6 +32,7 @@ function getDb(): Promise<IDBPDatabase<PhotoboxDB>> {
   if (!dbPromise) {
     dbPromise = openDB<PhotoboxDB>(DB_NAME, DB_VERSION, {
       upgrade(db) {
+        if (!db.objectStoreNames.contains('shares')) db.createObjectStore('shares', { keyPath: 'id' });
         if (!db.objectStoreNames.contains('frames')) {
           db.createObjectStore('frames', { keyPath: 'id' });
         }
@@ -67,4 +80,17 @@ export async function getAllCustomFrames(): Promise<Record<string, string>> {
     console.warn('Error loading custom frames:', error);
     return {};
   }
+}
+
+export async function saveShareJob(job: PhotoShareJob): Promise<void> {
+  await (await getDb()).put('shares', job);
+}
+export async function getShareJob(id: string): Promise<PhotoShareJob | undefined> {
+  return (await getDb()).get('shares', id);
+}
+export async function getShareJobs(): Promise<PhotoShareJob[]> {
+  return (await getDb()).getAll('shares');
+}
+export async function deleteShareJob(id: string): Promise<void> {
+  await (await getDb()).delete('shares', id);
 }

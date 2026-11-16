@@ -1,3 +1,4 @@
+import { PhotoSharePanel } from '../components/PhotoSharePanel';
 import React, { useEffect, useState } from 'react';
 import { Check, ArrowRight } from 'lucide-react';
 import confetti from 'canvas-confetti';
@@ -6,7 +7,7 @@ import { Header } from '../components/Header';
 
 export const SuccessScreen: React.FC = () => {
   const { settings, resetToWelcome } = usePhotobox();
-  const totalSeconds = settings.autoResetSeconds || 8;
+  const totalSeconds = Math.max(settings.autoResetSeconds || 8, 60);
   const [secondsLeft, setSecondsLeft] = useState(totalSeconds);
 
   useEffect(() => {
@@ -56,6 +57,8 @@ export const SuccessScreen: React.FC = () => {
         <p className="text-[19px] leading-relaxed text-brand-muted max-w-xs mb-8">
           Terima kasih! Jangan lupa ambil fotomu di mulut printer ya.
         </p>
+
+        <PhotoSharePanel />
 
         {/* Readable Auto-Reset Countdown */}
         <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-brand-blue-light text-brand-blue font-medium text-base">

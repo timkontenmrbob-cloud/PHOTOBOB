@@ -12,6 +12,7 @@ import {
   AdminSettings,
   VisitorSession,
 } from '../types';
+import { queuePhotoShare, startShareQueue } from '../services/photoSharing';
 import { loadSettings, saveSettings } from '../services/storage';
 import {
   saveFrameAsset,
@@ -105,6 +106,10 @@ export const PhotoboxProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const inactivityTimerRef = useRef<number | null>(null);
 
+  useEffect(() => startShareQueue(), []);
+
+  const shareAttemptRef = useRef<string | null>(null);
+
   // Initialize WakeLock
   useEffect(() => {
     wakeLockService.setEnabled(settings.enableWakeLock);
@@ -147,6 +152,8 @@ export const PhotoboxProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     setSession({
       sessionId: generateSessionId(),
       selectedFrameId: 'frame-1',
+      shareId: undefined,
+      shareError: undefined,
       capturedPhotoBlob: null,
       capturedPhotoUrl: null,
       composedPrintBlob: null,
@@ -208,6 +215,8 @@ export const PhotoboxProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     setSession({
       sessionId: generateSessionId(),
       selectedFrameId: 'frame-1',
+      shareId: undefined,
+      shareError: undefined,
       capturedPhotoBlob: null,
       capturedPhotoUrl: null,
       composedPrintBlob: null,
@@ -248,6 +257,7 @@ export const PhotoboxProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
       setSession((prev) => ({
         ...prev,
+        createdAt: Date.now(),
         capturedPhotoBlob: photoBlob,
         capturedPhotoUrl: photoUrl,
         hasPrinted: false,
@@ -323,9 +333,13 @@ export const PhotoboxProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   // 5. Retake Photo
   const retakePhoto = useCallback(() => {
+    shareAttemptRef.current = null;
     if (session.capturedPhotoUrl) URL.revokeObjectURL(session.capturedPhotoUrl);
     setSession((prev) => ({
       ...prev,
+      sessionId: generateSessionId(),
+      shareId: undefined,
+      shareError: undefined,
       capturedPhotoBlob: null,
       capturedPhotoUrl: null,
       composedPrintBlob: null,
@@ -367,6 +381,24 @@ export const PhotoboxProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }));
     setScreen('printing');
 
+    // Save only the accepted capture, once across printer retries. Printing never waits for internet.
+    if (session.capturedPhotoBlob && shareAttemptRef.current !== session.sessionId) {
+      const sessionId = session.sessionId;
+      const frame = frames.find(item => item.id === session.selectedFrameId) || frames[0];
+      shareAttemptRef.current = sessionId;
+      void queuePhotoShare({
+        photoBlob: session.capturedPhotoBlob,
+        frameUrl: frame.customDataUrl || frame.defaultUrl,
+        settings: currentSettings,
+        sessionRef: sessionId,
+      }, session.createdAt).then(job => {
+        setSession(previous => previous.sessionId === sessionId ? { ...previous, shareId: job.id, shareError: undefined } : previous);
+      }).catch(error => {
+        if (shareAttemptRef.current === sessionId) shareAttemptRef.current = null;
+        setSession(previous => previous.sessionId === sessionId ? { ...previous, shareError: error instanceof Error ? error.message : 'Gagal menyimpan foto download.' } : previous);
+      });
+    }
+
     const result = await printerService.printPhotobox({
       base64Image: session.composedPrintBase64,
       previewUrl: session.composedPreviewUrl || '',
@@ -403,6 +435,10 @@ export const PhotoboxProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       setScreen('print-error');
     }
   }, [
+    frames,
+    session.capturedPhotoBlob,
+    session.selectedFrameId,
+    session.createdAt,
     session.hasPrinted,
     session.printStatus,
     session.composedPrintBase64,

@@ -1,3 +1,4 @@
+import { PhotoSharingSettings } from '../components/PhotoSharingSettings';
 import React, { useState, useEffect } from 'react';
 import {
   Printer,
@@ -540,6 +541,7 @@ export const AdminSettingsScreen: React.FC<{ onClose: () => void }> = ({ onClose
         </div>
 
         {/* TAB 1: STATUS & KONEKSI */}
+        {activeTab === 'status' && <PhotoSharingSettings />}
         {activeTab === 'status' && (
           <div className="space-y-6">
             {formData.printerMode === 'windows-qz' ? (

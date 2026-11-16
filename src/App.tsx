@@ -1,3 +1,4 @@
+import { DownloadScreen } from './screens/DownloadScreen';
 import React, { useState } from 'react';
 import { PhotoboxProvider, usePhotobox } from './context/PhotoboxContext';
 import { WelcomeScreen } from './screens/WelcomeScreen';
@@ -66,6 +67,7 @@ const PhotoboxMain: React.FC = () => {
 };
 
 export function App() {
+  if (location.pathname === '/download' || location.pathname === '/download/') return <DownloadScreen />;
   return (
     <PhotoboxProvider>
       <PhotoboxMain />

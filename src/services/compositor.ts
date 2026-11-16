@@ -97,8 +97,10 @@ export async function composePhotoboxLayout(options: ComposeOptions): Promise<Co
   // Protect against overly wide values (> 576 dots for 80mm thermal roll causes line wrapping/split parts)
   const rawWidth = settings.rasterDotWidth || 576;
   const maxWidth = settings.printerMode === 'android-bluetooth' && settings.paperWidth === 58 ? 384 : 576;
-  const printWidth = options.digital ? 1080 : Math.min(maxWidth, Math.max(384, Math.floor(rawWidth / 8) * 8));
-  const layoutScale = options.digital ? 1080 / 576 : 1;
+  // Browser printing resamples through the Windows driver; retain full design detail.
+  const fullResolution = options.digital || settings.printerMode === 'windows-usb';
+  const printWidth = fullResolution ? 1080 : Math.min(maxWidth, Math.max(384, Math.floor(rawWidth / 8) * 8));
+  const layoutScale = fullResolution ? 1080 / 576 : 1;
 
   // User requirement: HAPUS FOOTER DAN HEADER BIAR OTOMATIS HEMAT KERTAS
   const showHeader = settings.showHeader === true;
@@ -109,7 +111,7 @@ export async function composePhotoboxLayout(options: ComposeOptions): Promise<Co
 
   // Digital files keep the exact design coordinates; print margins apply only to paper.
   const area = getFramePhotoArea(options.frameId);
-  const marginX = options.digital ? 0 : Math.min(Math.floor(printWidth / 4), Math.max(0, (settings.marginHorizontal ?? 16) * layoutScale));
+  const marginX = fullResolution ? 0 : Math.min(Math.floor(printWidth / 4), Math.max(0, (settings.marginHorizontal ?? 16) * layoutScale));
   const frameWidth = printWidth - marginX * 2;
   const frameHeight = Math.round(frameWidth * 4 / 3);
   const layoutHeight = Math.round(printWidth * 4 / 3);

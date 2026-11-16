@@ -64,9 +64,31 @@ export class WindowsBrowserPrinter implements PrinterAdapter {
         </div>
       `;
 
+      // 3. Ensure image is fully loaded and decoded before triggering window.print()
+      const img = printContainer.querySelector('#photobox-print-image') as HTMLImageElement;
+      if (img) {
+        if (!img.complete) {
+          await new Promise((resolve) => {
+            img.onload = resolve;
+            img.onerror = resolve;
+          });
+        }
+        if (typeof img.decode === 'function') {
+          try {
+            await img.decode();
+          } catch {
+            // decode fallback
+          }
+        }
+      }
+
+
       // 2. Inject or update dynamic @media print styles sized for 80mm roll
-      const paperWidthMm = settings.windowsPaperWidthMm || 80;
-      const printableWidthMm = settings.windowsPrintableWidthMm || 72;
+      const paperWidthMm = Math.min(120, Math.max(40, Number(settings.windowsPaperWidthMm) || 80));
+      const printableWidthMm = Math.min(paperWidthMm, Math.max(32, Number(settings.windowsPrintableWidthMm) || 72));
+      const imageRatio = img?.naturalWidth && img.naturalHeight ? img.naturalHeight / img.naturalWidth : 4 / 3;
+      // CSS page sizes require two lengths; "80mm auto" is invalid and can fall back to A4.
+      const pageHeightMm = Math.ceil(printableWidthMm * imageRatio * 10) / 10;
 
       let styleEl = document.getElementById('photobox-print-dynamic-styles') as HTMLStyleElement | null;
       if (!styleEl) {
@@ -79,7 +101,7 @@ export class WindowsBrowserPrinter implements PrinterAdapter {
       styleEl.textContent = `
         @media print {
           @page {
-            size: ${paperWidthMm}mm auto;
+            size: ${paperWidthMm}mm ${pageHeightMm}mm;
             margin: 0;
           }
           html, body {
@@ -122,9 +144,9 @@ export class WindowsBrowserPrinter implements PrinterAdapter {
             display: block !important;
             margin: 0 auto !important;
             object-fit: contain !important;
-            image-rendering: -webkit-optimize-contrast;
-            image-rendering: crisp-edges;
-            image-rendering: pixelated;
+            image-rendering: auto;
+            print-color-adjust: exact;
+            -webkit-print-color-adjust: exact;
           }
         }
         @media screen {
@@ -133,24 +155,6 @@ export class WindowsBrowserPrinter implements PrinterAdapter {
           }
         }
       `;
-
-      // 3. Ensure image is fully loaded and decoded before triggering window.print()
-      const img = printContainer.querySelector('#photobox-print-image') as HTMLImageElement;
-      if (img) {
-        if (!img.complete) {
-          await new Promise((resolve) => {
-            img.onload = resolve;
-            img.onerror = resolve;
-          });
-        }
-        if (typeof img.decode === 'function') {
-          try {
-            await img.decode();
-          } catch {
-            // decode fallback
-          }
-        }
-      }
 
       // Small pause to guarantee GPU / print rasterizer readiness
       await new Promise((resolve) => setTimeout(resolve, 200));

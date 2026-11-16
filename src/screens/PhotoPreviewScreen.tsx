@@ -22,7 +22,7 @@ export const PhotoPreviewScreen: React.FC = () => {
         {/* Title & Instruction */}
         <div className="text-center mb-3">
           <h1 className="text-2xl sm:text-3xl font-extrabold text-brand-dark tracking-tight mb-1">
-            Foto Kamu Sudah Jadi!
+            Fotomu Sudah Jadi!
           </h1>
           <p className="text-[17px] text-brand-muted">
             Sudah suka dengan hasilnya?
@@ -35,7 +35,7 @@ export const PhotoPreviewScreen: React.FC = () => {
             {isComposing || !session.composedPrintBase64 ? (
               <div className="min-h-[260px] aspect-[3/4] w-full flex flex-col items-center justify-center gap-3 bg-brand-blue-light/50 rounded-xl">
                 <RefreshCw className="w-10 h-10 text-brand-blue animate-spin" />
-                <p className="text-base font-semibold text-brand-dark">Menyiapkan cetakan...</p>
+                <p className="text-base font-semibold text-brand-dark">Menyiapkan Foto</p>
               </div>
             ) : (
               <div className="w-full flex flex-col items-center">

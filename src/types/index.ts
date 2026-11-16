@@ -19,7 +19,16 @@ export interface FrameItem {
   isCustom?: boolean;
 }
 
+export interface PrintCalibration {
+  brightness: number;
+  contrast: number;
+  gamma: number;
+  method: 'grayscale' | 'diffusion' | 'threshold';
+  threshold: number;
+}
+
 export interface AdminSettings {
+  printCalibration?: PrintCalibration;
   appTitle: string;
   showHeader: boolean; // default false, if false header is omitted and photo starts at top edge (0mm top space)
   showFooter: boolean; // default false, if false footer is omitted (zero bottom space, saves paper)

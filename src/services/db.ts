@@ -12,6 +12,7 @@ export interface PhotoShareJob {
 }
 
 interface PhotoboxDB extends DBSchema {
+  calibration: { key: string; value: Blob };
   shares: { key: string; value: PhotoShareJob };
   frames: {
     key: string;
@@ -24,7 +25,7 @@ interface PhotoboxDB extends DBSchema {
 }
 
 const DB_NAME = 'photobox_db';
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 
 let dbPromise: Promise<IDBPDatabase<PhotoboxDB>> | null = null;
 
@@ -32,6 +33,7 @@ function getDb(): Promise<IDBPDatabase<PhotoboxDB>> {
   if (!dbPromise) {
     dbPromise = openDB<PhotoboxDB>(DB_NAME, DB_VERSION, {
       upgrade(db) {
+        if (!db.objectStoreNames.contains('calibration')) db.createObjectStore('calibration');
         if (!db.objectStoreNames.contains('shares')) db.createObjectStore('shares', { keyPath: 'id' });
         if (!db.objectStoreNames.contains('frames')) {
           db.createObjectStore('frames', { keyPath: 'id' });
@@ -40,6 +42,14 @@ function getDb(): Promise<IDBPDatabase<PhotoboxDB>> {
     });
   }
   return dbPromise;
+}
+
+export async function saveCalibrationPhoto(blob: Blob): Promise<void> {
+  await (await getDb()).put('calibration', blob, 'photo');
+}
+
+export async function loadCalibrationPhoto(): Promise<Blob | undefined> {
+  return (await getDb()).get('calibration', 'photo');
 }
 
 export async function saveFrameAsset(id: string, blob: Blob): Promise<void> {

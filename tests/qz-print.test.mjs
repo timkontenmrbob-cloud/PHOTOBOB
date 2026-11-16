@@ -19,13 +19,14 @@ function harness(failure) {
       if (failure) throw new Error(failure);
     },
   };
+  const rawRequests = [];
   const api = {};
   vm.runInNewContext(compiled, {
-    exports: api, require: () => ({ default: qz }), atob,
+    exports: api, require: name => name === 'qz-tray' ? ({ default: qz }) : ({ pngToEscPos: async (...args) => { rawRequests.push(args); return 'RAW_COMMAND_BYTES'; } }), atob,
     console: { log() {}, warn() {}, error() {} }, setTimeout, clearTimeout,
     window: { print() { assert.fail('QZ must never open Chrome print'); } },
   });
-  return { printer: new api.QZTrayPrinter(), jobs };
+  return { printer: new api.QZTrayPrinter(), jobs, rawRequests };
 }
 const settings = { windowsPaperWidthMm: 80, windowsPrintableWidthMm: 72, qzPrinterName: 'iWare IW D260UL' };
 const png = (await sharp({ create: { width: 576, height: 190, channels: 3, background: '#fff' } }).png().toBuffer()).toString('base64');
@@ -60,4 +61,17 @@ test('image parsing failure is not reported as a disconnected printer', async ()
   assert.equal(result.success, false);
   assert.equal(result.errorMessage, 'QZ Tray gagal membaca gambar cetak.');
   assert.ok(!result.errorFix.includes('kabel'));
+});
+
+
+test('ESC/POS route sends prepacked command bytes, never raw IMAGE conversion', async () => {
+  const app = harness();
+  const result = await app.printer.print({ base64Image: png, settings: { ...settings, qzUseRawEscpos: true }, sessionRef: 'raw-test' });
+  assert.equal(result.success, true);
+  assert.equal(app.rawRequests.length, 1);
+  assert.equal(app.rawRequests[0][0], png);
+  assert.equal(app.jobs[0].data[0].type, 'raw');
+  assert.equal(app.jobs[0].data[0].format, 'command');
+  assert.equal(app.jobs[0].data[0].data, 'RAW_COMMAND_BYTES');
+  assert.equal(app.jobs[0].data.length, 1);
 });

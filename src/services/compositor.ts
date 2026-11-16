@@ -1,5 +1,6 @@
 import { AdminSettings } from '../types';
 import { getFramePhotoArea } from './frameLayout';
+import { applyPrintCalibration } from './printCalibration';
 
 export interface ComposeOptions {
   photoBlob: Blob;
@@ -234,14 +235,15 @@ export async function composePhotoboxLayout(options: ComposeOptions): Promise<Co
 
   // Preserve natural tones: grayscale only, with no cosmetic processing.
   applyGrayscale(ctx, printWidth, totalHeight);
-  const thermalPreviewUrl = canvas.toDataURL('image/png');
+  const printCanvas = applyPrintCalibration(canvas, settings);
+  const thermalPreviewUrl = printCanvas.toDataURL('image/png');
   const cleanterBase64 = thermalPreviewUrl.replace(/^data:image\/png;base64,/, '');
 
   return {
     previewUrl: thermalPreviewUrl, // Plain grayscale; hardware conversion happens in the printer adapter.
     thermalPreviewUrl,
     cleanterBase64,
-    width: printWidth,
-    height: totalHeight,
+    width: printCanvas.width,
+    height: printCanvas.height,
   };
 }

@@ -117,7 +117,7 @@ export function loadSettings(): AdminSettings {
       showFooter,
       headerHeight: showHeader ? (parsed.headerHeight || 40) : 0,
       footerHeight: showFooter ? (parsed.footerHeight || 70) : 0,
-      qzUseRawEscpos: false, // Use the installed Windows image driver
+      qzUseRawEscpos: parsed.qzUseRawEscpos === true,
       printerMode: resolvedMode,
       // Ensure correct port 8181 for secure QZ Tray
       qzPort: parsed.qzPort === 8182 ? 8181 : (parsed.qzPort || 8181),

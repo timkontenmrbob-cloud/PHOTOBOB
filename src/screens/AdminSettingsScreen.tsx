@@ -1,4 +1,5 @@
 import { PhotoSharingSettings } from '../components/PhotoSharingSettings';
+import { PrintCalibrationPanel } from '../components/PrintCalibrationPanel';
 import React, { useState, useEffect } from 'react';
 import {
   Printer,
@@ -1046,6 +1047,7 @@ export const AdminSettingsScreen: React.FC<{ onClose: () => void }> = ({ onClose
         {/* TAB 3: PENGATURAN CETAK & KALIBRASI */}
         {activeTab === 'print' && (
           <div className="space-y-6">
+            <PrintCalibrationPanel settings={formData} onChange={setFormData} onSave={newSettings => { setFormData(newSettings); updateSettings(newSettings); }} />
             {/* Test Print Section */}
             <div className="bg-brand-blue-light/50 border border-blue-200 rounded-2xl p-5 space-y-3">
               <div className="flex items-center justify-between">
@@ -1308,7 +1310,7 @@ export const AdminSettingsScreen: React.FC<{ onClose: () => void }> = ({ onClose
                 </div>
 
                 <p className="text-xs text-brand-muted">
-                  Foto menggunakan hitam putih natural, tanpa efek titik, perubahan kecerahan, atau kontras tambahan.
+                  Kalibrasi foto mengikuti setting di panel Kalibrasi Foto. Klik Simpan sebagai Default setelah menemukan hasil yang cocok.
                 </p>
               </div>
 
@@ -1393,10 +1395,10 @@ export const AdminSettingsScreen: React.FC<{ onClose: () => void }> = ({ onClose
                   <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl space-y-1">
                     <p className="font-bold text-emerald-800 flex items-center gap-1.5">
                       <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                      <span>Driver Windows via QZ Tray</span>
+                      <span>{formData.qzUseRawEscpos ? 'ESC/POS langsung via QZ Tray' : 'Driver Windows via QZ Tray'}</span>
                     </p>
                     <p className="text-[11px] text-emerald-700 leading-relaxed">
-                      Gambar hitam putih dikirim melalui driver Windows tanpa dialog Chrome dan tanpa tekstur tambahan dari aplikasi. Atur potong kertas otomatis melalui preferensi driver printer.
+                      {formData.qzUseRawEscpos ? 'Perintah raster ESC/POS dibuat langsung di aplikasi. Gradasi dan kecerahan mengikuti kalibrasi yang kamu simpan.' : 'Gambar dikirim melalui driver Windows tanpa dialog Chrome. Atur potong kertas otomatis melalui preferensi driver printer.'}
                     </p>
                   </div>
 

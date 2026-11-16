@@ -1,4 +1,5 @@
 import qz from 'qz-tray';
+import { pngToEscPos } from '../printCalibration';
 import {
   AdminSettings,
   PrinterAdapter,
@@ -251,7 +252,7 @@ export class QZTrayPrinter implements PrinterAdapter {
       const contentWidth = Math.min(paperWidth, Math.max(32, Number(settings.windowsPrintableWidthMm) || 72));
       const sideMargin = (paperWidth - contentWidth) / 2;
       const pageHeight = Math.ceil(contentWidth * imageHeight / imageWidth * 10) / 10;
-      const config = qz.configs.create(resolvedPrinter, {
+      let config = qz.configs.create(resolvedPrinter, {
         units: 'mm',
         size: { width: paperWidth, height: pageHeight },
         margins: { top: 0, right: sideMargin, bottom: 0, left: sideMargin },
@@ -260,9 +261,17 @@ export class QZTrayPrinter implements PrinterAdapter {
         scaleContent: true,
         jobName: `Photobox ${sessionRef}`,
       });
-      const printData = [{
+      let printData = [{
         type: 'pixel', format: 'image', flavor: 'base64', data: cleanBase64,
       }];
+
+      if (settings.qzUseRawEscpos) {
+        config = qz.configs.create(resolvedPrinter, { encoding: 'UTF-8' });
+        printData = [{
+          type: 'raw', format: 'command', flavor: 'base64',
+          data: await pngToEscPos(cleanBase64, settings),
+        }];
+      }
 
       // 4. Send print job with 18-second timeout protection
       const printTimeoutMs = 18000;

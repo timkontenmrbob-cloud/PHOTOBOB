@@ -43,7 +43,7 @@ export const DownloadScreen: React.FC = () => {
     finally { setBusy(null); }
   }
   return <main className="min-h-screen bg-white px-6 py-12 text-center text-brand-dark"><div className="max-w-sm mx-auto">
-    <h1 className="text-3xl font-extrabold mb-4">Foto Kenanganmu</h1>
+    <h1 className="text-3xl font-extrabold mb-4">Foto Moment Spesialmu!</h1>
     {state === 'loading' && <p>Memeriksa foto...</p>}
     {state === 'pending' && <p>Fotomu masih menunggu upload dari photobox. Halaman ini akan memeriksa otomatis. Simpan link ini untuk dibuka lagi nanti.</p>}
     {state === 'expired' && <p>Masa download 30 hari sudah berakhir. Foto ini sudah tidak tersedia.</p>}

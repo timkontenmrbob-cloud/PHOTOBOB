@@ -193,7 +193,7 @@ export class QZTrayPrinter implements PrinterAdapter {
       await this.ensureConnected(settings);
 
       // 2. Validate clean base64 data
-      const cleanBase64 = base64Image.replace(/^data:image\/[a-z]+;base64,/, '');
+      const cleanBase64 = base64Image.replace(/^data:image\/[a-z]+;base64,/i, '').replace(/\s/g, '');
       if (!cleanBase64 || cleanBase64.length === 0) {
         console.error('[QZTrayPrinter] Base64 image kosong!');
         return {
@@ -228,45 +228,41 @@ export class QZTrayPrinter implements PrinterAdapter {
         console.warn('[QZTrayPrinter] Gagal auto-resolve printer, tetap menggunakan:', targetPrinter, findErr);
       }
 
-      // 4. Prepare Print Payload
-      let config: any;
-      let printData: any[];
-
-      // Direct ESC/POS Hardware Execution (Native for iWare IW D260UL & 80mm thermal receipt printers)
-      // Fixes:
-      // 1. "hasilnya jadi hitam pekat": set quantization: 'dither', threshold: 128 (default was 'alpha' which turns all opaque pixels solid black)
-      // 2. "driver windows malah gak keluar": bypasses Windows GDI print spooler drops by speaking native ESC/POS bytecode
-      console.log(`[QZTrayPrinter] Mengirim pekerjaan via Direct ESC/POS ke "${resolvedPrinter}"...`);
-      config = qz.configs.create(resolvedPrinter, {
-        encoding: 'UTF-8',
-        rasterize: false,
-      });
-
-      printData = [
-        '\x1B\x40', // ESC @ (Initialize printer, reset any previous formatting)
-        '\x1B\x61\x01', // ESC a 1 (Center alignment)
-        {
-          type: 'raw',
-          format: 'image',
-          flavor: 'base64',
-          data: cleanBase64,
-          options: {
-            language: 'escpos',
-            imageEncoding: 'gs_v_0', // Native 203 DPI raster bit image: perfect 1:1 pixel fidelity
-            quantization: 'dither', // Convert grayscale to the one-bit format required by the thermal printhead.
-            threshold: 128,
-          },
-        },
-        '\x0A', // Line feed to ensure raster buffer is fully flushed to thermal printhead
-        '\x1B\x61\x00', // ESC a 0 (Reset to normal left alignment)
-      ];
-
-      if (settings.qzFeedAndCut) {
-        // Feed 2 lines so cutter cuts cleanly past the bottom edge of the photo
-        const feed = settings.feedLines && settings.feedLines > 0 ? Math.min(settings.feedLines, 5) : 2;
-        printData.push(`\x1Bd${String.fromCharCode(feed)}`);
-        printData.push('\x1DV\x42\x00'); // GS V 66 0 (Cut paper cleanly at cutting position)
+      // Use the installed Windows image driver, avoiding raw ESC/POS image
+      // conversion. This sends the unchanged grayscale PNG without app dithering.
+      let imageWidth: number;
+      let imageHeight: number;
+      try {
+        const bytes = Uint8Array.from(atob(cleanBase64), char => char.charCodeAt(0));
+        const signature = [137, 80, 78, 71, 13, 10, 26, 10];
+        if (bytes.length < 24 || !signature.every((value, index) => bytes[index] === value)) throw new Error();
+        const view = new DataView(bytes.buffer);
+        imageWidth = view.getUint32(16);
+        imageHeight = view.getUint32(20);
+        if (!imageWidth || !imageHeight) throw new Error();
+      } catch {
+        return {
+          success: false,
+          errorMessage: 'Gambar cetak PNG tidak valid.',
+          errorFix: 'Ambil foto baru atau ulangi test print untuk membuat ulang gambar.',
+        };
       }
+      const paperWidth = Math.min(120, Math.max(40, Number(settings.windowsPaperWidthMm) || 80));
+      const contentWidth = Math.min(paperWidth, Math.max(32, Number(settings.windowsPrintableWidthMm) || 72));
+      const sideMargin = (paperWidth - contentWidth) / 2;
+      const pageHeight = Math.ceil(contentWidth * imageHeight / imageWidth * 10) / 10;
+      const config = qz.configs.create(resolvedPrinter, {
+        units: 'mm',
+        size: { width: paperWidth, height: pageHeight },
+        margins: { top: 0, right: sideMargin, bottom: 0, left: sideMargin },
+        colorType: 'grayscale',
+        interpolation: 'bicubic',
+        scaleContent: true,
+        jobName: `Photobox ${sessionRef}`,
+      });
+      const printData = [{
+        type: 'pixel', format: 'image', flavor: 'base64', data: cleanBase64,
+      }];
 
       // 4. Send print job with 18-second timeout protection
       const printTimeoutMs = 18000;
@@ -314,11 +310,13 @@ export class QZTrayPrinter implements PrinterAdapter {
       // Truncate errorMsg if excessively long (e.g. base64 signature, stack trace)
       const cleanInfo = errorMsg.length > 90 ? `${errorMsg.substring(0, 87)}...` : errorMsg;
 
-      // Enforce strict required error message per Section 2:
+      const imageError = /cannot parse|image conversion|invalid.*(?:image|base64)|unsupported.*image/i.test(errorMsg);
       return {
         success: false,
-        errorMessage: 'Printer tidak terhubung. Silakan panggil petugas.',
-        errorFix: `${fix} (Info: ${cleanInfo})`,
+        errorMessage: imageError ? 'QZ Tray gagal membaca gambar cetak.' : 'QZ Tray gagal mengirim cetakan.',
+        errorFix: imageError
+          ? 'Ulangi test print dengan versi aplikasi terbaru. Jika tetap gagal, periksa log QZ Tray untuk detail format gambar.'
+          : `${fix} (Info: ${cleanInfo})`,
       };
     }
   }

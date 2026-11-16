@@ -98,7 +98,7 @@ export async function composePhotoboxLayout(options: ComposeOptions): Promise<Co
   const rawWidth = settings.rasterDotWidth || 576;
   const maxWidth = settings.printerMode === 'android-bluetooth' && settings.paperWidth === 58 ? 384 : 576;
   // Browser printing resamples through the Windows driver; retain full design detail.
-  const fullResolution = options.digital || settings.printerMode === 'windows-usb';
+  const fullResolution = options.digital || settings.printerMode !== 'android-bluetooth';
   const printWidth = fullResolution ? 1080 : Math.min(maxWidth, Math.max(384, Math.floor(rawWidth / 8) * 8));
   const layoutScale = fullResolution ? 1080 / 576 : 1;
 

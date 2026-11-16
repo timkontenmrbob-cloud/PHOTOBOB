@@ -1393,31 +1393,14 @@ export const AdminSettingsScreen: React.FC<{ onClose: () => void }> = ({ onClose
                   <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl space-y-1">
                     <p className="font-bold text-emerald-800 flex items-center gap-1.5">
                       <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                      <span>Direct ESC/POS 203 DPI (Aktif Otomatis)</span>
+                      <span>Driver Windows via QZ Tray</span>
                     </p>
                     <p className="text-[11px] text-emerald-700 leading-relaxed">
-                      Mesin cetak dikunci otomatis ke protokol hardware native ESC/POS (0mm margin, resolusi native 203 DPI, dan dithering Black & White otomatis). Kecerahan hasil fisik perlu dikalibrasi sesuai printer dan kertas.
+                      Gambar hitam putih dikirim melalui driver Windows tanpa dialog Chrome dan tanpa tekstur tambahan dari aplikasi. Atur potong kertas otomatis melalui preferensi driver printer.
                     </p>
                   </div>
 
-                  <div>
-                    <label className="block font-semibold mb-1">Auto Feed & Potong Kertas (Cut)</label>
-                    <div className="flex items-center gap-2 mt-2">
-                      <input
-                        type="checkbox"
-                        id="qzFeedAndCut"
-                        checked={formData.qzFeedAndCut}
-                        onChange={(e) => setFormData({ ...formData, qzFeedAndCut: e.target.checked })}
-                        className="w-5 h-5 accent-brand-blue rounded"
-                      />
-                      <label htmlFor="qzFeedAndCut" className="text-xs text-brand-dark cursor-pointer font-medium">
-                        Kirim perintah feed kertas & auto-cut setelah foto selesai
-                      </label>
-                    </div>
-                    <p className="text-[11px] text-brand-muted mt-1">
-                      Kertas otomatis dipotong rapi tepat setelah foto selesai dicetak.
-                    </p>
-                  </div>
+
                 </div>
 
                 {/* Silent Printing & Security */}

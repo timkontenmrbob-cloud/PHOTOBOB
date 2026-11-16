@@ -28,7 +28,7 @@ export const DEFAULT_SETTINGS: AdminSettings = {
   qzUseSecure: typeof window !== 'undefined' && window.location.protocol === 'https:',
   qzCertificateUrl: '',
   qzSignatureEndpoint: '',
-  qzUseRawEscpos: true, // true = Direct ESC/POS bytecode (0mm margin, zero top whitespace, recommended for iWare 80mm thermal)
+  qzUseRawEscpos: false, // QZ prints grayscale images through the installed Windows driver
   qzFeedAndCut: true,
 
   // Windows USB Browser Configuration (iWare IW D260UL / 80mm ESC/POS)
@@ -117,7 +117,7 @@ export function loadSettings(): AdminSettings {
       showFooter,
       headerHeight: showHeader ? (parsed.headerHeight || 40) : 0,
       footerHeight: showFooter ? (parsed.footerHeight || 70) : 0,
-      qzUseRawEscpos: true, // Always true for hardware thermal receipt printers
+      qzUseRawEscpos: false, // Use the installed Windows image driver
       printerMode: resolvedMode,
       // Ensure correct port 8181 for secure QZ Tray
       qzPort: parsed.qzPort === 8182 ? 8181 : (parsed.qzPort || 8181),

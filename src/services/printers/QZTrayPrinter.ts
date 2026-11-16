@@ -256,7 +256,7 @@ export class QZTrayPrinter implements PrinterAdapter {
         units: 'mm',
         size: { width: paperWidth, height: pageHeight },
         margins: { top: 0, right: sideMargin, bottom: 0, left: sideMargin },
-        colorType: 'grayscale',
+        colorType: settings.printOriginalPhoto !== false ? 'color' : 'grayscale',
         interpolation: 'bicubic',
         scaleContent: true,
         jobName: `Photobox ${sessionRef}`,

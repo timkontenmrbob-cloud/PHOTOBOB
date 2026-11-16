@@ -233,14 +233,13 @@ export async function composePhotoboxLayout(options: ComposeOptions): Promise<Co
     return { previewUrl: '', thermalPreviewUrl: '', cleanterBase64: '', width: printWidth, height: totalHeight, colorBlob, bwBlob };
   }
 
-  // Preserve natural tones: grayscale only, with no cosmetic processing.
-  applyGrayscale(ctx, printWidth, totalHeight);
+  // Original photo mode preserves camera colors and bypasses all print filters.
   const printCanvas = applyPrintCalibration(canvas, settings);
   const thermalPreviewUrl = printCanvas.toDataURL('image/png');
   const cleanterBase64 = thermalPreviewUrl.replace(/^data:image\/png;base64,/, '');
 
   return {
-    previewUrl: thermalPreviewUrl, // Plain grayscale; hardware conversion happens in the printer adapter.
+    previewUrl: thermalPreviewUrl,
     thermalPreviewUrl,
     cleanterBase64,
     width: printCanvas.width,

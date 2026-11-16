@@ -5,6 +5,7 @@ export const NEUTRAL_CALIBRATION: PrintCalibration = {
 };
 
 export function calibratePixels(source: Uint8ClampedArray, width: number, height: number, options: PrintCalibration): Uint8ClampedArray {
+  if (options.method === 'original') return source.slice();
   const tone = new Float32Array(width * height);
   const result = new Uint8ClampedArray(source.length);
   const brightness = Math.min(1.6, Math.max(0.6, options.brightness));
@@ -41,6 +42,7 @@ export function calibratePixels(source: Uint8ClampedArray, width: number, height
 }
 
 export function applyPrintCalibration(source: HTMLCanvasElement, settings: AdminSettings): HTMLCanvasElement {
+  if (settings.printOriginalPhoto !== false || settings.printCalibration?.method === 'original') return source;
   const raw = settings.printerMode === 'windows-qz' && settings.qzUseRawEscpos;
   const options = settings.printCalibration || { ...NEUTRAL_CALIBRATION, method: raw ? 'diffusion' : 'grayscale' };
   const canvas = document.createElement('canvas');

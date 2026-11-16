@@ -28,7 +28,7 @@ function harness(failure) {
   });
   return { printer: new api.QZTrayPrinter(), jobs, rawRequests };
 }
-const settings = { windowsPaperWidthMm: 80, windowsPrintableWidthMm: 72, qzPrinterName: 'iWare IW D260UL' };
+const settings = { printOriginalPhoto: false, windowsPaperWidthMm: 80, windowsPrintableWidthMm: 72, qzPrinterName: 'iWare IW D260UL' };
 const png = (await sharp({ create: { width: 576, height: 190, channels: 3, background: '#fff' } }).png().toBuffer()).toString('base64');
 
 test('QZ sends unchanged PNG through Windows driver instead of raw image conversion', async () => {
@@ -74,4 +74,13 @@ test('ESC/POS route sends prepacked command bytes, never raw IMAGE conversion', 
   assert.equal(app.jobs[0].data[0].format, 'command');
   assert.equal(app.jobs[0].data[0].data, 'RAW_COMMAND_BYTES');
   assert.equal(app.jobs[0].data.length, 1);
+});
+
+
+test('original-photo mode sends camera colors to Windows without forcing grayscale', async () => {
+  const app = harness();
+  const result = await app.printer.print({ base64Image: png, settings: { ...settings, printOriginalPhoto: true }, sessionRef: 'original' });
+  assert.equal(result.success, true);
+  assert.equal(app.jobs[0].config.options.colorType, 'color');
+  assert.equal(app.jobs[0].data[0].data, png);
 });

@@ -97,3 +97,13 @@ test('saved ESC/POS selection survives reloading settings', () => {
   assert.equal(loaded.qzUseRawEscpos, true);
   assert.equal(loaded.printCalibration.contrast, 0.75);
 });
+
+
+test('original-photo mode bypasses grayscale, contrast, gamma, and texture', () => {
+  const source = new Uint8ClampedArray([240, 40, 80, 255, 20, 140, 210, 255]);
+  const result = api.calibratePixels(source, 2, 1, { ...natural, method: 'original', brightness: 1.6, contrast: 1.6, gamma: 2 });
+  assert.deepEqual(result, source);
+  const fakeCanvas = { testOriginal: true };
+  assert.equal(api.applyPrintCalibration(fakeCanvas, { printOriginalPhoto: true }), fakeCanvas);
+  assert.equal(api.applyPrintCalibration(fakeCanvas, {}), fakeCanvas);
+});

@@ -61,7 +61,7 @@ export const WelcomeScreen: React.FC = () => {
             muted
             playsInline
             aria-label="Preview kamera selfie"
-            className="w-full h-full object-cover -scale-x-100 grayscale"
+            className="w-full h-full object-cover -scale-x-100"
           />
           {cameraStatus === 'ready' && (
             <div className="absolute left-3 top-3 flex items-center gap-2 rounded-full bg-white/90 px-3 py-1.5 text-xs font-semibold text-brand-dark">

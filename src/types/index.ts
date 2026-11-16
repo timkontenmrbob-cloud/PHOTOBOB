@@ -23,11 +23,12 @@ export interface PrintCalibration {
   brightness: number;
   contrast: number;
   gamma: number;
-  method: 'grayscale' | 'diffusion' | 'threshold';
+  method: 'original' | 'grayscale' | 'diffusion' | 'threshold';
   threshold: number;
 }
 
 export interface AdminSettings {
+  printOriginalPhoto?: boolean;
   printCalibration?: PrintCalibration;
   appTitle: string;
   showHeader: boolean; // default false, if false header is omitted and photo starts at top edge (0mm top space)

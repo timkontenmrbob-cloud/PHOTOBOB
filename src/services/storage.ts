@@ -8,6 +8,7 @@ function isMobilePlatform(): boolean {
 }
 
 export const DEFAULT_SETTINGS: AdminSettings = {
+  printOriginalPhoto: true,
   appTitle: 'PHOTOBOX',
   showHeader: false, // Default false: completely remove header to save paper
   showFooter: false, // Default false: completely remove footer to save paper

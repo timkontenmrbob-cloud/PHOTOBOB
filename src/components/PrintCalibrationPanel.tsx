@@ -17,7 +17,7 @@ function routeName(settings: AdminSettings) {
     ? settings.qzUseRawEscpos ? 'ESC/POS via QZ' : 'Driver Windows via QZ'
     : settings.printerMode === 'windows-usb' ? 'Chrome / USB' : 'Bluetooth / Cleanter';
 }
-const methodName = (method: string) => method === 'diffusion' ? 'Titik halus' : method === 'threshold' ? 'Hitam putih tegas' : 'Grayscale natural';
+const methodName = (method: string) => method === 'original' ? 'Foto asli tanpa filter' : method === 'diffusion' ? 'Titik halus' : method === 'threshold' ? 'Hitam putih tegas' : 'Grayscale natural';
 
 async function loadImage(url: string) {
   const image = new Image();
@@ -42,7 +42,7 @@ async function labeledSample(result: ComposeResult, settings: AdminSettings, num
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   ctx.drawImage(image, 0, 0);
   ctx.fillStyle = '#000';
-  const cal = settings.printCalibration || NEUTRAL_CALIBRATION;
+  const cal = settings.printOriginalPhoto !== false ? { ...NEUTRAL_CALIBRATION, method: 'original' as const } : settings.printCalibration || NEUTRAL_CALIBRATION;
   const lines = [
     `SAMPEL #${number} | ${routeName(settings)}`,
     `Terang ${cal.brightness.toFixed(2)} | Kontras ${cal.contrast.toFixed(2)} | Gamma ${cal.gamma.toFixed(2)}`,
@@ -69,7 +69,7 @@ export const PrintCalibrationPanel: React.FC<Props> = ({ settings, onChange, onS
   const [error, setError] = useState('');
   const [history, setHistory] = useState<{ number: number; settings: AdminSettings }[]>([]);
   const sampleNumber = useRef(Number(localStorage.getItem('photobox_calibration_sample') || 0));
-  const cal = settings.printCalibration || NEUTRAL_CALIBRATION;
+  const cal = settings.printOriginalPhoto !== false ? { ...NEUTRAL_CALIBRATION, method: 'original' as const } : settings.printCalibration || NEUTRAL_CALIBRATION;
   const raw = settings.printerMode === 'windows-qz' && settings.qzUseRawEscpos;
   const frame = frames.find(item => item.id === frameId) || frames[0];
   const key = JSON.stringify([settings, frameId, frame.customDataUrl, photoVersion.current]);
@@ -104,7 +104,8 @@ export const PrintCalibrationPanel: React.FC<Props> = ({ settings, onChange, onS
 
   const updateCal = (patch: Partial<PrintCalibration>) => {
     setMessage('');
-    onChange({ ...settings, printCalibration: { ...cal, ...patch } });
+    const method = patch.method || (cal.method === 'original' ? raw ? 'diffusion' : 'grayscale' : cal.method);
+    onChange({ ...settings, printOriginalPhoto: method === 'original', printCalibration: { ...cal, ...patch, method } });
   };
   const selectPhoto = (blob: Blob) => {
     photoVersion.current += 1;
@@ -115,8 +116,8 @@ export const PrintCalibrationPanel: React.FC<Props> = ({ settings, onChange, onS
   };
   const variants = [
     { name: 'A · Setting Saat Ini', calibration: { ...cal } },
-    { name: 'B · Lebih Terang', calibration: { ...cal, brightness: Math.min(1.6, cal.brightness + 0.1) } },
-    { name: 'C · Lebih Lembut', calibration: { ...cal, brightness: Math.min(1.6, cal.brightness + 0.05), contrast: Math.max(0.5, cal.contrast - 0.15) } },
+    { name: 'B · Lebih Terang', calibration: { ...cal, method: cal.method === 'original' ? raw ? 'diffusion' as const : 'grayscale' as const : cal.method, brightness: Math.min(1.6, cal.brightness + 0.1) } },
+    { name: 'C · Lebih Lembut', calibration: { ...cal, method: cal.method === 'original' ? raw ? 'diffusion' as const : 'grayscale' as const : cal.method, brightness: Math.min(1.6, cal.brightness + 0.05), contrast: Math.max(0.5, cal.contrast - 0.15) } },
   ];
 
   const printSamples = async (batch: boolean) => {
@@ -132,7 +133,8 @@ export const PrintCalibrationPanel: React.FC<Props> = ({ settings, onChange, onS
       const canvases: HTMLCanvasElement[] = [];
       const submitted: { number: number; settings: AdminSettings }[] = [];
       for (const sample of samples) {
-        const testSettings = { ...snapshot, printCalibration: sample.calibration };
+        const calibration = sample.calibration;
+        const testSettings = { ...snapshot, printOriginalPhoto: calibration.method === 'original', printCalibration: calibration };
         const result = await composePhotoboxLayout({
           photoBlob: photo, frameUrl: frame.customDataUrl || frame.defaultUrl,
           frameId: frame.id, settings: testSettings, sessionRef: 'CALIBRATION',
@@ -232,20 +234,21 @@ export const PrintCalibrationPanel: React.FC<Props> = ({ settings, onChange, onS
           <input type="range" min={min} max={max} step={step} value={cal[field]} onChange={event => updateCal({ [field]: Number(event.target.value) })} className="w-full mt-2 accent-brand-blue" />
         </label>)}
         <p className="text-xs text-brand-muted">Kurangi kontras untuk bayangan lebih lembut. Naikkan gamma untuk membuka detail area gelap.</p>
-        <label className="block text-sm font-semibold">Metode Hitam Putih
+        <label className="block text-sm font-semibold">Olahan Foto
           <select className={`${inputClass} mt-1`} value={raw && cal.method === 'grayscale' ? 'diffusion' : cal.method} onChange={event => updateCal({ method: event.target.value as PrintCalibration['method'] })}>
+            <option value="original">Foto asli · tanpa filter warna atau tekstur</option>
             {!raw && <option value="grayscale">Grayscale natural · tanpa tekstur aplikasi</option>}
             <option value="diffusion">Titik halus · gradasi foto</option>
             <option value="threshold">Hitam putih tegas · tanpa gradasi</option>
           </select>
         </label>
-        {(raw || cal.method !== 'grayscale') && <label className="block text-sm font-semibold">Ambang Hitam Putih <span className="float-right text-brand-blue">{cal.threshold}</span>
+        {cal.method !== 'original' && (raw || cal.method !== 'grayscale') && <label className="block text-sm font-semibold">Ambang Hitam Putih <span className="float-right text-brand-blue">{cal.threshold}</span>
           <input className="w-full mt-2 accent-brand-blue" type="range" min="64" max="192" step="1" value={cal.threshold} onChange={event => updateCal({ threshold: Number(event.target.value) })} />
         </label>}
         <div className="grid grid-cols-3 gap-2">
           {variants.map(item => <button key={item.name} type="button" onClick={() => updateCal(item.calibration)} className="rounded-xl border border-brand-border p-2 text-xs font-semibold hover:bg-brand-blue-light">{item.name}</button>)}
         </div>
-        <button type="button" className="text-sm text-brand-blue underline" onClick={() => updateCal({ ...NEUTRAL_CALIBRATION, method: raw ? 'diffusion' : 'grayscale' })}>Reset Kalibrasi ke Natural</button>
+        <button type="button" className="text-sm text-brand-blue underline" onClick={() => updateCal({ ...NEUTRAL_CALIBRATION, method: 'original' })}>Pakai Foto Asli Tanpa Filter</button>
       </fieldset>
       <div className="grid grid-cols-2 gap-2">
         <button type="button" disabled={!ready} onClick={() => void printSamples(false)} className="rounded-xl bg-brand-blue text-white px-3 py-3 text-sm font-bold disabled:opacity-40">{printing ? 'Memproses...' : 'Cetak Sampel'}</button>

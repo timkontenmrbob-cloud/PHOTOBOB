@@ -283,7 +283,7 @@ export const PhotoboxProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         setSession((prev) => ({
           ...prev,
           composedPrintBase64: result.cleanterBase64,
-          composedPreviewUrl: result.previewUrl, // Natural grayscale preview
+          composedPreviewUrl: result.previewUrl,
           hasPrinted: false,
         }));
       } catch (err) {
@@ -307,14 +307,12 @@ export const PhotoboxProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           if (ctx) {
             ctx.fillStyle = '#FFFFFF';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.filter = 'grayscale(1)';
             const size = Math.min(fallbackImg.naturalWidth, fallbackImg.naturalHeight);
             const area = getFramePhotoArea(activeFrame.id);
             ctx.drawImage(fallbackImg,
               (fallbackImg.naturalWidth - size) / 2, (fallbackImg.naturalHeight - size) / 2, size, size,
               canvas.width * area.x / 1080, canvas.height * area.y / 1440,
               canvas.width * area.size / 1080, canvas.width * area.size / 1080);
-            ctx.filter = 'none';
           }
           const dataUrl = canvas.toDataURL('image/png');
           const base64 = dataUrl.replace(/^data:image\/png;base64,/, '');

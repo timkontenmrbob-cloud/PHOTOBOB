@@ -4,6 +4,7 @@ import {
   PrintJobParams,
   PrintResult,
 } from '../../types';
+import { createBrowserThermalImage } from '../thermalRaster';
 
 export class WindowsBrowserPrinter implements PrinterAdapter {
   readonly id = 'windows-usb';
@@ -89,6 +90,13 @@ export class WindowsBrowserPrinter implements PrinterAdapter {
       const imageRatio = img?.naturalWidth && img.naturalHeight ? img.naturalHeight / img.naturalWidth : 4 / 3;
       // CSS page sizes require two lengths; "80mm auto" is invalid and can fall back to A4.
       const pageHeightMm = Math.ceil(printableWidthMm * imageRatio * 10) / 10;
+
+      // Supply fine monochrome dots at the printhead resolution instead of asking
+      // the Windows driver to choose a coarse halftone screen for grayscale input.
+      if (img?.naturalWidth && img.naturalHeight) {
+        img.src = createBrowserThermalImage(img, printableWidthMm);
+        await img.decode();
+      }
 
       let styleEl = document.getElementById('photobox-print-dynamic-styles') as HTMLStyleElement | null;
       if (!styleEl) {
